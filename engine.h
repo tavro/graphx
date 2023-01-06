@@ -224,7 +224,7 @@ namespace engine {
 	Pixel pixel_lerp(const engine::Pixel& p1, const engine::Pixel& p2, float t);
 
 	static const Pixel
-		WHITE(255, 255, 255), BLACK(0, 0, 0);
+		WHITE(255, 255, 255), LIGHT_GREY(200, 200, 200), GREY(155, 155, 155), DARK_GREY(55, 55, 55), BLACK(0, 0, 0);
 
     enum Key {
 		NONE,
