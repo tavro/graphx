@@ -69,7 +69,7 @@ public:
 	float *depth_buffer = nullptr;
 	bool on_create() override {
 		//cube_mesh.load_from_obj_file("teapot.obj", false);
-		//spr_tex1 = new engine::Sprite("stone.png");
+		spr_tex1 = new engine::Sprite("stone.png");
 		camera.y = 5.0f;
 		depth_buffer = new float[screen_width() * screen_height()];
 
@@ -290,6 +290,11 @@ public:
 				draw_triangle(t.pos[0].x, t.pos[0].y, t.pos[1].x, t.pos[1].y, t.pos[2].x, t.pos[2].y, engine::BLACK);
 			}
 		}
+
+		std::string mouse_x = std::to_string(get_mouse_x());
+		std::string mouse_y = std::to_string(get_mouse_y());
+		draw_string(0, 0, "mouse x:" + mouse_x);
+		draw_string(0, 8, "mouse y:" + mouse_y);
 
 		return true;
 	}
