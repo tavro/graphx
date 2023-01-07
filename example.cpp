@@ -5,105 +5,12 @@
 #include <strstream>
 #include <algorithm>
 
+#include "utils/vector.h"
+#include "utils/triangle.h"
+#include "utils/matrix.h"
+#include "utils/mesh.h"
+
 using namespace std;
-
-struct Vector2D {
-	float u = 0;
-	float v = 0;
-	float w = 1;
-};
-
-struct Vector3D {
-    float x = 0;
-	float y = 0;
-	float z = 0;
-	float w = 1;
-};
-
-struct Triangle {
-    Vector3D pos[3];
-	Vector2D tex[3];
-	engine::Pixel col;
-};
-
-struct Mesh {
-    vector<Triangle> triangles;
-
-	bool load_from_obj_file(string file_name, bool has_texture = false) {
-		ifstream file(file_name);
-
-		if(!file.is_open())
-			return false;
-
-		vector<Vector3D> verts;
-		vector<Vector2D> texs;
-		while(!file.eof()) {
-			char line[128];
-			file.getline(line, 128);
-
-			strstream s;
-			s << line;
-
-			char tmp;
-
-			if(line[0] == 'v') {
-				if (line[1] == 't') {
-					Vector2D v;
-					s >> tmp >> tmp >> v.u >> v.v;
-					texs.push_back(v);
-				}
-				else {
-					Vector3D vert;
-					s >> tmp >> vert.x >> vert.y >> vert.z;
-					verts.push_back(vert);
-				}
-			}
-
-			if(!has_texture) {
-				if(line[0] == 'f') {
-					int f[3];
-					s >> tmp >> f[0] >> f[1] >> f[2];
-					triangles.push_back({
-						verts[f[0] - 1],
-						verts[f[1] - 1],
-						verts[f[2] - 1]
-					});
-				}
-				else {
-					if (line[0] == 'f') {
-						s >> tmp;
-						string tokens[6];
-						int token_count = -1;
-
-						while (!s.eof()) {
-							char c = s.get();
-							if (c == ' ' || c == '/')
-								token_count++;
-							else
-								tokens[token_count].append(1, c);
-						}
-						tokens[token_count].pop_back();
-
-						triangles.push_back({ 
-							verts[stoi(tokens[0]) - 1], 
-							verts[stoi(tokens[2]) - 1], 
-							verts[stoi(tokens[4]) - 1],
-							texs[stoi(tokens[1]) - 1], 
-							texs[stoi(tokens[3]) - 1], 
-							texs[stoi(tokens[5]) - 1] 
-						});
-					}
-				}
-			}
-		}
-
-		return true;
-	}
-};
-
-struct Matrix4x4 {
-    float m[4][4] = { 0 };
-};
 
 class Engine3D : public engine::Engine {
 public:
@@ -122,345 +29,6 @@ private:
     float theta;
 
 	engine::Sprite *spr_tex1;
-
-    Vector3D matrix_multiply_vector(Matrix4x4 &m, Vector3D &i) {
-		Vector3D v;
-
-		v.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + i.w * m.m[3][0];
-		v.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + i.w * m.m[3][1];
-		v.z = i.x * m.m[0][2] + i.y * m.m[1][2] + i.z * m.m[2][2] + i.w * m.m[3][2];
-		v.w = i.x * m.m[0][3] + i.y * m.m[1][3] + i.z * m.m[2][3] + i.w * m.m[3][3];
-		
-		return v;
-	}
-
-	Matrix4x4 matrix_make_identity() {
-		Matrix4x4 matrix;
-
-		matrix.m[0][0] = 1.0f;
-		matrix.m[1][1] = 1.0f;
-		matrix.m[2][2] = 1.0f;
-		matrix.m[3][3] = 1.0f;
-
-		return matrix;
-	}
-
-	Matrix4x4 matrix_make_rotation_x(float angle_rad) {
-		Matrix4x4 matrix;
-
-		matrix.m[0][0] = 1.0f;
-		matrix.m[1][1] = cosf(angle_rad);
-		matrix.m[1][2] = sinf(angle_rad);
-		matrix.m[2][1] = -sinf(angle_rad);
-		matrix.m[2][2] = cosf(angle_rad);
-		matrix.m[3][3] = 1.0f;
-
-		return matrix;
-	}
-
-	Matrix4x4 matrix_make_rotation_y(float angle_rad) {
-		Matrix4x4 matrix;
-
-		matrix.m[0][0] = cosf(angle_rad);
-		matrix.m[0][2] = sinf(angle_rad);
-		matrix.m[2][0] = -sinf(angle_rad);
-		matrix.m[1][1] = 1.0f;
-		matrix.m[2][2] = cosf(angle_rad);
-		matrix.m[3][3] = 1.0f;
-
-		return matrix;
-	}
-
-	Matrix4x4 matrix_make_rotation_z(float angle_rad) {
-		Matrix4x4 matrix;
-
-		matrix.m[0][0] = cosf(angle_rad);
-		matrix.m[0][1] = sinf(angle_rad);
-		matrix.m[1][0] = -sinf(angle_rad);
-		matrix.m[1][1] = cosf(angle_rad);
-		matrix.m[2][2] = 1.0f;
-		matrix.m[3][3] = 1.0f;
-
-		return matrix;
-	}
-
-	Matrix4x4 matrix_make_translation(float x, float y, float z) {
-		Matrix4x4 matrix;
-
-		matrix.m[0][0] = 1.0f;
-		matrix.m[1][1] = 1.0f;
-		matrix.m[2][2] = 1.0f;
-		matrix.m[3][3] = 1.0f;
-		matrix.m[3][0] = x;
-		matrix.m[3][1] = y;
-		matrix.m[3][2] = z;
-
-		return matrix;
-	}
-
-	Matrix4x4 matrix_make_projection(float fov_degrees, float aspect_ratio, float near, float far) {
-		float fov_rad = 1.0f / tanf(fov_degrees * 0.5f / 180.0f * 3.14159f);
-		Matrix4x4 matrix;
-
-		matrix.m[0][0] = aspect_ratio * fov_rad;
-		matrix.m[1][1] = fov_rad;
-		matrix.m[2][2] = far / (far - near);
-		matrix.m[3][2] = (-far * near) / (far - near);
-		matrix.m[2][3] = 1.0f;
-		matrix.m[3][3] = 0.0f;
-
-		return matrix;
-	}
-
-	Matrix4x4 matrix_multiply_matrix(Matrix4x4 &m1, Matrix4x4 &m2) {
-		Matrix4x4 matrix;
-
-		for (int c = 0; c < 4; c++)
-			for (int r = 0; r < 4; r++)
-				matrix.m[r][c] = m1.m[r][0] * m2.m[0][c] + m1.m[r][1] * m2.m[1][c] + m1.m[r][2] * m2.m[2][c] + m1.m[r][3] * m2.m[3][c];
-		
-		return matrix;
-	}
-
-	Matrix4x4 matrix_point_at(Vector3D &pos, Vector3D &target, Vector3D &up) {
-		Vector3D new_forward = vector_sub(target, pos);
-		new_forward = vector_norm(new_forward);
-
-		Vector3D a = vector_mult(new_forward, vector_dotprod(up, new_forward));
-		Vector3D new_up = vector_sub(up, a);
-		new_up = vector_norm(new_up);
-
-		Vector3D new_right = vector_crossprod(new_up, new_forward);
-
-		Matrix4x4 matrix;
-		
-		matrix.m[0][0] = new_right.x;	
-		matrix.m[0][1] = new_right.y;	
-		matrix.m[0][2] = new_right.z;	
-		matrix.m[0][3] = 0.0f;
-
-		matrix.m[1][0] = new_up.x;		
-		matrix.m[1][1] = new_up.y;		
-		matrix.m[1][2] = new_up.z;		
-		matrix.m[1][3] = 0.0f;
-
-		matrix.m[2][0] = new_forward.x;	
-		matrix.m[2][1] = new_forward.y;	
-		matrix.m[2][2] = new_forward.z;	
-		matrix.m[2][3] = 0.0f;
-
-		matrix.m[3][0] = pos.x;			
-		matrix.m[3][1] = pos.y;			
-		matrix.m[3][2] = pos.z;			
-		matrix.m[3][3] = 1.0f;
-		
-		return matrix;
-	}
-
-	Matrix4x4 matrix_quick_inverse(Matrix4x4 &m) {
-		Matrix4x4 matrix;
-
-		matrix.m[0][0] = m.m[0][0]; 
-		matrix.m[0][1] = m.m[1][0]; 
-		matrix.m[0][2] = m.m[2][0]; 
-		matrix.m[0][3] = 0.0f;
-
-		matrix.m[1][0] = m.m[0][1]; 
-		matrix.m[1][1] = m.m[1][1]; 
-		matrix.m[1][2] = m.m[2][1]; 
-		matrix.m[1][3] = 0.0f;
-
-		matrix.m[2][0] = m.m[0][2]; 
-		matrix.m[2][1] = m.m[1][2]; 
-		matrix.m[2][2] = m.m[2][2]; 
-		matrix.m[2][3] = 0.0f;
-
-		matrix.m[3][0] = -(m.m[3][0] * matrix.m[0][0] + m.m[3][1] * matrix.m[1][0] + m.m[3][2] * matrix.m[2][0]);
-		matrix.m[3][1] = -(m.m[3][0] * matrix.m[0][1] + m.m[3][1] * matrix.m[1][1] + m.m[3][2] * matrix.m[2][1]);
-		matrix.m[3][2] = -(m.m[3][0] * matrix.m[0][2] + m.m[3][1] * matrix.m[1][2] + m.m[3][2] * matrix.m[2][2]);
-		matrix.m[3][3] = 1.0f;
-
-		return matrix;
-	}
-
-	Vector3D vector_add(Vector3D &v1, Vector3D &v2) {
-		return {
-			v1.x + v2.x,
-			v1.y + v2.y,
-			v1.z + v2.z
-		};
-	}
-
-	Vector3D vector_sub(Vector3D &v1, Vector3D &v2) {
-		return {
-			v1.x - v2.x,
-			v1.y - v2.y,
-			v1.z - v2.z
-		};
-	}
-
-	Vector3D vector_div(Vector3D &v1, float k) {
-		return {
-			v1.x / k,
-			v1.y / k,
-			v1.z / k
-		};
-	}
-
-	Vector3D vector_mult(Vector3D &v1, float k) {
-		return {
-			v1.x * k,
-			v1.y * k,
-			v1.z * k
-		};
-	}
-
-	float vector_dotprod(Vector3D &v1, Vector3D &v2) {
-		return v1.x * v2.x + v1.y * v2.y + v1.z * v2.z;
-	}
-
-	float vector_len(Vector3D &v) {
-		return sqrtf(vector_dotprod(v, v));
-	}
-
-	Vector3D vector_norm(Vector3D &v) {
-		float len = vector_len(v);
-		return {
-			v.x / len,
-			v.y / len,
-			v.z / len
-		};
-	}
-
-	Vector3D vector_crossprod(Vector3D &v1, Vector3D &v2) {
-		Vector3D v;
-		
-		v.x = v1.y * v2.z - v1.z * v2.y;
-		v.y = v1.z * v2.x - v1.x * v2.z;
-		v.z = v1.x * v2.y - v1.y * v2.x;
-
-		return v;
-	}
-
-	Vector3D vector_intersect_plane(Vector3D &plane_p, Vector3D &plane_n, Vector3D &line_start, Vector3D &line_end, float &t) {
-		plane_n = vector_norm(plane_n);
-
-		float plane_d = -vector_dotprod(plane_n, plane_p);
-		float ad = vector_dotprod(line_start, plane_n);
-		float bd = vector_dotprod(line_end, plane_n);
-
-		t = (-plane_d - ad) / (bd - ad);
-		Vector3D line_start_to_end = vector_sub(line_end, line_start);
-		Vector3D line_to_intersect = vector_mult(line_start_to_end, t);
-		return vector_add(line_start, line_to_intersect);
-	}
-
-	int triangle_clip_against_plane(Vector3D plane_p, Vector3D plane_n, Triangle &in_tri, Triangle &out_tri1, Triangle &out_tri2) {
-		plane_n = vector_norm(plane_n);
-
-		auto dist = [&](Vector3D &p) {
-			Vector3D n = vector_norm(p);
-			return (plane_n.x * p.x + plane_n.y * p.y + plane_n.z * p.z - vector_dotprod(plane_n, plane_p));
-		};
-
-		Vector3D* inside_points[3];  
-		int inside_point_count = 0;
-
-		Vector3D* outside_points[3]; 
-		int outside_point_count = 0;
-
-		Vector2D* inside_tex[3]; 
-		int inside_tex_count = 0;
-
-		Vector2D* outside_tex[3]; 
-		int outside_tex_count = 0;
-
-		float d0 = dist(in_tri.pos[0]);
-		float d1 = dist(in_tri.pos[1]);
-		float d2 = dist(in_tri.pos[2]);
-
-		if (d0 >= 0) { 
-			inside_points[inside_point_count++] = &in_tri.pos[0]; 
-			inside_tex[inside_tex_count++] = &in_tri.tex[0]; 
-		}
-		else {
-			outside_points[outside_point_count++] = &in_tri.pos[0]; 
-			outside_tex[outside_tex_count++] = &in_tri.tex[0];
-		}
-
-		if (d1 >= 0) {
-			inside_points[inside_point_count++] = &in_tri.pos[1]; 
-			inside_tex[inside_tex_count++] = &in_tri.tex[1];
-		}
-		else {
-			outside_points[outside_point_count++] = &in_tri.pos[1];  
-			outside_tex[outside_tex_count++] = &in_tri.tex[1];
-		}
-
-		if (d2 >= 0) {
-			inside_points[inside_point_count++] = &in_tri.pos[2]; 
-			inside_tex[inside_tex_count++] = &in_tri.tex[2];
-		}
-		else {
-			outside_points[outside_point_count++] = &in_tri.pos[2];  
-			outside_tex[outside_tex_count++] = &in_tri.tex[2];
-		}
-
-		if (inside_point_count == 0) {
-			return 0;
-		}
-
-		if (inside_point_count == 3) {
-			out_tri1 = in_tri;
-			return 1;
-		}
-
-		if (inside_point_count == 1 && outside_point_count == 2) {
-			out_tri1.col =  in_tri.col;
-
-			out_tri1.pos[0] = *inside_points[0];
-			out_tri1.tex[0] = *inside_tex[0];
-
-			float t;
-			out_tri1.pos[1] = vector_intersect_plane(plane_p, plane_n, *inside_points[0], *outside_points[0], t);
-			out_tri1.tex[1].u = t * (outside_tex[0]->u - inside_tex[0]->u) + inside_tex[0]->u;
-			out_tri1.tex[1].v = t * (outside_tex[0]->v - inside_tex[0]->v) + inside_tex[0]->v;
-			out_tri1.tex[1].w = t * (outside_tex[0]->w - inside_tex[0]->w) + inside_tex[0]->w;
-
-			out_tri1.pos[2] = vector_intersect_plane(plane_p, plane_n, *inside_points[0], *outside_points[1], t);
-			out_tri1.tex[2].u = t * (outside_tex[1]->u - inside_tex[0]->u) + inside_tex[0]->u;
-			out_tri1.tex[2].v = t * (outside_tex[1]->v - inside_tex[0]->v) + inside_tex[0]->v;
-			out_tri1.tex[2].w = t * (outside_tex[1]->w - inside_tex[0]->w) + inside_tex[0]->w;
-
-			return 1;
-		}
-
-		if (inside_point_count == 2 && outside_point_count == 1) {
-			out_tri1.col =  in_tri.col;
-			out_tri2.col =  in_tri.col;
-
-			out_tri1.pos[0] = *inside_points[0];
-			out_tri1.pos[1] = *inside_points[1];
-			out_tri1.tex[0] = *inside_tex[0];
-			out_tri1.tex[1] = *inside_tex[1];
-
-			float t;
-			out_tri1.pos[2] = vector_intersect_plane(plane_p, plane_n, *inside_points[0], *outside_points[0], t);
-			out_tri1.tex[2].u = t * (outside_tex[0]->u - inside_tex[0]->u) + inside_tex[0]->u;
-			out_tri1.tex[2].v = t * (outside_tex[0]->v - inside_tex[0]->v) + inside_tex[0]->v;
-			out_tri1.tex[2].w = t * (outside_tex[0]->w - inside_tex[0]->w) + inside_tex[0]->w;
-
-			out_tri2.pos[0] = *inside_points[1];
-			out_tri2.tex[0] = *inside_tex[1];
-			out_tri2.pos[1] = out_tri1.pos[2];
-			out_tri2.tex[1] = out_tri1.tex[2];
-			out_tri2.pos[2] = vector_intersect_plane(plane_p, plane_n, *inside_points[1], *outside_points[0], t);
-			out_tri2.tex[2].u = t * (outside_tex[0]->u - inside_tex[1]->u) + inside_tex[1]->u;
-			out_tri2.tex[2].v = t * (outside_tex[0]->v - inside_tex[1]->v) + inside_tex[1]->v;
-			out_tri2.tex[2].w = t * (outside_tex[0]->w - inside_tex[1]->w) + inside_tex[1]->w;
-			return 2;
-		}
-	}
 
 	engine::Pixel get_color(float lum) {
 		engine::Pixel col;
@@ -498,33 +66,32 @@ private:
 public:
 	float *depth_buffer = nullptr;
 	bool on_create() override {
-		cube_mesh.load_from_obj_file("teapot.obj", false);
+		//cube_mesh.load_from_obj_file("teapot.obj", false);
 		depth_buffer = new float[screen_width() * screen_height()];
 		
-		/*
 		cube_mesh.triangles = {
-			{ 0.0f, 0.0f, 0.0f, 1.0f,    0.0f, 1.0f, 0.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,}, 
-			{ 0.0f, 0.0f, 0.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,    1.0f, 0.0f, 0.0f, 1.0f,		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
+			{ Vector3D(0.0f, 0.0f, 0.0f),    Vector3D(0.0f, 1.0f, 0.0f),    Vector3D(1.0f, 1.0f, 0.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,}, 
+			{ Vector3D(0.0f, 0.0f, 0.0f),    Vector3D(1.0f, 1.0f, 0.0f),    Vector3D(1.0f, 0.0f, 0.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
 																										
-			{ 1.0f, 0.0f, 0.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,    1.0f, 1.0f, 1.0f, 1.0f,		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ 1.0f, 0.0f, 0.0f, 1.0f,    1.0f, 1.0f, 1.0f, 1.0f,    1.0f, 0.0f, 1.0f, 1.0f,		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
+			{ Vector3D(1.0f, 0.0f, 0.0f),    Vector3D(1.0f, 1.0f, 0.0f),    Vector3D(1.0f, 1.0f, 1.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
+			{ Vector3D(1.0f, 0.0f, 0.0f),    Vector3D(1.0f, 1.0f, 1.0f),    Vector3D(1.0f, 0.0f, 1.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
 																										
-			{ 1.0f, 0.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f,		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ 1.0f, 0.0f, 1.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f,    0.0f, 0.0f, 1.0f, 1.0f,		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
+			{ Vector3D(1.0f, 0.0f, 1.0f),    Vector3D(1.0f, 1.0f, 1.0f),    Vector3D(0.0f, 1.0f, 1.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
+			{ Vector3D(1.0f, 0.0f, 1.0f),    Vector3D(0.0f, 1.0f, 1.0f),    Vector3D(0.0f, 0.0f, 1.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
 																										
-			{ 0.0f, 0.0f, 1.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f,    0.0f, 1.0f, 0.0f, 1.0f,		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ 0.0f, 0.0f, 1.0f, 1.0f,    0.0f, 1.0f, 0.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
+			{ Vector3D(0.0f, 0.0f, 1.0f),    Vector3D(0.0f, 1.0f, 1.0f),    Vector3D(0.0f, 1.0f, 0.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
+			{ Vector3D(0.0f, 0.0f, 1.0f),    Vector3D(0.0f, 1.0f, 0.0f),    Vector3D(0.0f, 0.0f, 0.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
 																										
-			{ 0.0f, 1.0f, 0.0f, 1.0f,    0.0f, 1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 1.0f, 1.0f,		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ 0.0f, 1.0f, 0.0f, 1.0f,    1.0f, 1.0f, 1.0f, 1.0f,    1.0f, 1.0f, 0.0f, 1.0f,		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
+			{ Vector3D(0.0f, 1.0f, 0.0f),    Vector3D(0.0f, 1.0f, 1.0f),    Vector3D(1.0f, 1.0f, 1.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
+			{ Vector3D(0.0f, 1.0f, 0.0f),    Vector3D(1.0f, 1.0f, 1.0f),    Vector3D(1.0f, 1.0f, 0.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
 																										
-			{ 1.0f, 0.0f, 1.0f, 1.0f,    0.0f, 0.0f, 1.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ 1.0f, 0.0f, 1.0f, 1.0f,    0.0f, 0.0f, 0.0f, 1.0f,    1.0f, 0.0f, 0.0f, 1.0f,		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
-		};*/
+			{ Vector3D(1.0f, 0.0f, 1.0f),    Vector3D(0.0f, 0.0f, 1.0f),    Vector3D(0.0f, 0.0f, 0.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
+			{ Vector3D(1.0f, 0.0f, 1.0f),    Vector3D(0.0f, 0.0f, 0.0f),    Vector3D(1.0f, 0.0f, 0.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
+		};
+		//spr_tex1 = new engine::Sprite("stone.png");
 
-		mat_proj = matrix_make_projection(90.0f, (float)screen_height() / (float)screen_width(), 0.1f, 1000.0f);
+		mat_proj = Matrix4x4::make_projection(90.0f, (float)screen_height() / (float)screen_width(), 0.1f, 1000.0f);
 
-		// spr_tex1 = new engine::Sprite("stone.png");
 		return true;
 	}
 
@@ -541,13 +108,14 @@ public:
 		if (get_key(engine::Key::RIGHT).held)
 			camera.x += 8.0f * elapsed_time;
 
-		Vector3D forward = vector_mult(look_dir, 8.0f * elapsed_time);
+		float speed = 8.0f * elapsed_time;
+		Vector3D forward(look_dir * speed);
 
 		if (get_key(engine::Key::W).held)
-			camera = vector_add(camera, forward);
+			camera += forward;
 
 		if (get_key(engine::Key::S).held)
-			camera = vector_sub(camera, forward);
+			camera -= forward;
 
 		if (get_key(engine::Key::A).held)
 			yaw -= 2.0f * elapsed_time;
@@ -557,69 +125,68 @@ public:
 
 		Matrix4x4 mat_rot_z, mat_rot_x;
 
-		mat_rot_z = matrix_make_rotation_z(theta * 0.5f);
-		mat_rot_x = matrix_make_rotation_x(theta);
+		mat_rot_z = Matrix4x4::make_rotation_z(theta * 0.5f);
+		mat_rot_x = Matrix4x4::make_rotation_x(theta);
 
 		Matrix4x4 mat_trans;
-		mat_trans = matrix_make_translation(0.0f, 0.0f, 5.0f);
+		mat_trans = Matrix4x4::make_translation(0.0f, 0.0f, 5.0f);
 
 		Matrix4x4 mat_world;
-		mat_world = matrix_make_identity();
-		mat_world = matrix_multiply_matrix(mat_rot_z, mat_rot_x);
-		mat_world = matrix_multiply_matrix(mat_world, mat_trans);
+		mat_world = Matrix4x4::make_identity();
+		mat_world = mat_rot_z * mat_rot_x;
+		mat_world = mat_world * mat_trans;
 
-		Vector3D up = { 0,1,0 };
-		Vector3D target = { 0,0,1 };
-		Matrix4x4 mat_cam_rot = matrix_make_rotation_y(yaw);
-		look_dir = matrix_multiply_vector(mat_cam_rot, target);
-		target = vector_add(camera, look_dir);
-		Matrix4x4 mat_cam = matrix_point_at(camera, target, up);
-		Matrix4x4 mat_view = matrix_quick_inverse(mat_cam);
+		Vector3D up(0.0f, 1.0f, 0.0f);
+		Vector3D target(0.0f, 0.0f, 1.0f);
+		Matrix4x4 mat_cam_rot = Matrix4x4::make_rotation_y(yaw);
+		look_dir = mat_cam_rot.multiply_vector(target);
+		target = camera + look_dir;
+		Matrix4x4 mat_cam = Matrix4x4::point_at(camera, target, up);
+		Matrix4x4 mat_view = mat_cam.quick_inverse();
 
 		vector<Triangle> triangles_to_raster;
 
 		for (auto tri : cube_mesh.triangles) {
 			Triangle tri_proj, tri_transformed, tri_viewed;
 
-			tri_transformed.pos[0] = matrix_multiply_vector(mat_world, tri.pos[0]);
-			tri_transformed.pos[1] = matrix_multiply_vector(mat_world, tri.pos[1]);
-			tri_transformed.pos[2] = matrix_multiply_vector(mat_world, tri.pos[2]);
+			tri_transformed.pos[0] = mat_world.multiply_vector(tri.pos[0]);
+			tri_transformed.pos[1] = mat_world.multiply_vector(tri.pos[1]);
+			tri_transformed.pos[2] = mat_world.multiply_vector(tri.pos[2]);
 			tri_transformed.tex[0] = tri.tex[0];
 			tri_transformed.tex[1] = tri.tex[1];
 			tri_transformed.tex[2] = tri.tex[2];
 
 			Vector3D normal, line1, line2;
+			line1 = tri_transformed.pos[1] - tri_transformed.pos[0];
+			line2 = tri_transformed.pos[2] - tri_transformed.pos[0];
 
-			line1 = vector_sub(tri_transformed.pos[1], tri_transformed.pos[0]);
-			line2 = vector_sub(tri_transformed.pos[2], tri_transformed.pos[0]);
-
-			normal = vector_crossprod(line1, line2);
-
-			normal = vector_norm(normal);
+			normal = line1.crossprod(line2);
+			normal = normal.normalize();
 			
-			Vector3D cam_ray = vector_sub(tri_transformed.pos[0], camera);
-			if (vector_dotprod(normal, cam_ray) < 0.0f) {
-				Vector3D light_dir = { 0.0f, 1.0f, -1.0f };
-				light_dir = vector_norm(light_dir);
+			Vector3D cam_ray = tri_transformed.pos[0] - camera;
+			if (normal.dotprod(cam_ray) < 0.0f) {
+				Vector3D light_dir(0.0f, 1.0f, -1.0f);
+				light_dir = light_dir.normalize();
 
-				float dp = max(0.1f, vector_dotprod(light_dir, normal));
+				float dp = max(0.1f, light_dir.dotprod(normal));
 				tri_transformed.col = get_color(dp);
 
-				tri_viewed.pos[0] = matrix_multiply_vector(mat_view, tri_transformed.pos[0]);
-				tri_viewed.pos[1] = matrix_multiply_vector(mat_view, tri_transformed.pos[1]);
-				tri_viewed.pos[2] = matrix_multiply_vector(mat_view, tri_transformed.pos[2]);
+				tri_viewed.pos[0] = mat_view.multiply_vector(tri_transformed.pos[0]);
+				tri_viewed.pos[1] = mat_view.multiply_vector(tri_transformed.pos[1]);
+				tri_viewed.pos[2] = mat_view.multiply_vector(tri_transformed.pos[2]);
 				tri_viewed.col = tri_transformed.col;
+
 				tri_viewed.tex[0] = tri_transformed.tex[0];
 				tri_viewed.tex[1] = tri_transformed.tex[1];
 				tri_viewed.tex[2] = tri_transformed.tex[2];
 
 				int clipped_triangles = 0;
 				Triangle clipped[2];
-				clipped_triangles = triangle_clip_against_plane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, tri_viewed, clipped[0], clipped[1]);
+				clipped_triangles = clip_against_plane({ 0.0f, 0.0f, 0.1f }, { 0.0f, 0.0f, 1.0f }, tri_viewed, clipped[0], clipped[1]);
 				for (int n = 0; n < clipped_triangles; n++) {
-					tri_proj.pos[0] = matrix_multiply_vector(mat_proj, clipped[n].pos[0]);
-					tri_proj.pos[1] = matrix_multiply_vector(mat_proj, clipped[n].pos[1]);
-					tri_proj.pos[2] = matrix_multiply_vector(mat_proj, clipped[n].pos[2]);
+					tri_proj.pos[0] = mat_proj.multiply_vector(clipped[n].pos[0]);
+					tri_proj.pos[1] = mat_proj.multiply_vector(clipped[n].pos[1]);
+					tri_proj.pos[2] = mat_proj.multiply_vector(clipped[n].pos[2]);
 					tri_proj.col = clipped[n].col;
 					tri_proj.tex[0] = clipped[n].tex[0];
 					tri_proj.tex[1] = clipped[n].tex[1];
@@ -637,9 +204,9 @@ public:
 					tri_proj.tex[1].w = 1.0f / tri_proj.pos[1].w;
 					tri_proj.tex[2].w = 1.0f / tri_proj.pos[2].w;
 
-					tri_proj.pos[0] = vector_div(tri_proj.pos[0], tri_proj.pos[0].w);
-					tri_proj.pos[1] = vector_div(tri_proj.pos[1], tri_proj.pos[1].w);
-					tri_proj.pos[2] = vector_div(tri_proj.pos[2], tri_proj.pos[2].w);
+					tri_proj.pos[0] = tri_proj.pos[0] / tri_proj.pos[0].w;
+					tri_proj.pos[1] = tri_proj.pos[1] / tri_proj.pos[1].w;
+					tri_proj.pos[2] = tri_proj.pos[2] / tri_proj.pos[2].w;
 
 					tri_proj.pos[0].x *= -1.0f;
 					tri_proj.pos[1].x *= -1.0f;
@@ -648,10 +215,11 @@ public:
 					tri_proj.pos[1].y *= -1.0f;
 					tri_proj.pos[2].y *= -1.0f;
 
-					Vector3D offset_view = { 1, 1, 0 };
-					tri_proj.pos[0] = vector_add(tri_proj.pos[0], offset_view);
-					tri_proj.pos[1] = vector_add(tri_proj.pos[1], offset_view);
-					tri_proj.pos[2] = vector_add(tri_proj.pos[2], offset_view);
+					Vector3D offset_view(1.0f, 1.0f, 0.0f);
+					tri_proj.pos[0] = tri_proj.pos[0] + offset_view;
+					tri_proj.pos[1] = tri_proj.pos[1] + offset_view;
+					tri_proj.pos[2] = tri_proj.pos[2] + offset_view;
+
 					tri_proj.pos[0].x *= 0.5f * (float)screen_width();
 					tri_proj.pos[0].y *= 0.5f * (float)screen_height();
 					tri_proj.pos[1].x *= 0.5f * (float)screen_width();
@@ -691,16 +259,16 @@ public:
 
 					switch (p) {
 						case 0:	
-							tris_to_add = triangle_clip_against_plane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); 
+							tris_to_add = clip_against_plane({ 0.0f, 0.0f, 0.0f }, { 0.0f, 1.0f, 0.0f }, test, clipped[0], clipped[1]); 
 							break;
 						case 1:	
-							tris_to_add = triangle_clip_against_plane({ 0.0f, (float)screen_height() - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); 
+							tris_to_add = clip_against_plane({ 0.0f, (float)screen_height() - 1, 0.0f }, { 0.0f, -1.0f, 0.0f }, test, clipped[0], clipped[1]); 
 							break;
 						case 2:	
-							tris_to_add = triangle_clip_against_plane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); 
+							tris_to_add = clip_against_plane({ 0.0f, 0.0f, 0.0f }, { 1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); 
 							break;
 						case 3:	
-							tris_to_add = triangle_clip_against_plane({ (float)screen_width() - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); 
+							tris_to_add = clip_against_plane({ (float)screen_width() - 1, 0.0f, 0.0f }, { -1.0f, 0.0f, 0.0f }, test, clipped[0], clipped[1]); 
 							break;
 					}
 
@@ -711,13 +279,13 @@ public:
 			}
 
 			for (auto &t : list_triangles) {
+				fill_triangle(t.pos[0].x, t.pos[0].y, t.pos[1].x, t.pos[1].y, t.pos[2].x, t.pos[2].y, t.col);
 				/*
 				textured_triangle(t.pos[0].x, t.pos[0].y, t.tex[0].u, t.tex[0].v, t.tex[0].w,
 					t.pos[1].x, t.pos[1].y, t.tex[1].u, t.tex[1].v, t.tex[1].w,
 					t.pos[2].x, t.pos[2].y, t.tex[2].u, t.tex[2].v, t.tex[2].w, spr_tex1);
 				*/
-				fill_triangle(t.pos[0].x, t.pos[0].y, t.pos[1].x, t.pos[1].y, t.pos[2].x, t.pos[2].y, t.col);
-				//draw_triangle(t.pos[0].x, t.pos[0].y, t.pos[1].x, t.pos[1].y, t.pos[2].x, t.pos[2].y, engine::WHITE);
+				draw_triangle(t.pos[0].x, t.pos[0].y, t.pos[1].x, t.pos[1].y, t.pos[2].x, t.pos[2].y, engine::BLACK);
 			}
 		}
 
