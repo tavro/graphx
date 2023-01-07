@@ -1,607 +1,63 @@
 #ifndef ENGINE_DEF
 #define ENGINE_DEF
 
-#pragma region std_includes
-#include <cmath>
-#include <cstdint>
-#include <string>
-#include <iostream>
-#include <streambuf>
-#include <sstream>
-#include <chrono>
-#include <vector>
-#include <list>
-#include <thread>
-#include <atomic>
-#include <fstream>
-#include <map>
-#include <functional>
-#include <algorithm>
-#include <array>
-#include <cstring>
-#pragma endregion
+#define ENGINE_VER 001
 
-#define ENGINE_VERSION 001
-
-// COMPILER CONFIGURATION
-#pragma region compiler_config
-#define USE_EXPERIMENTAL_FS
-#if defined(_WIN32)
-	#if _MSC_VER >= 1920 && _MSVC_LANG >= 201703L
-		#undef USE_EXPERIMENTAL_FS
-	#endif
-#endif
-#if defined(__linux__) || defined(__MINGW32__) || defined(__EMSCRIPTEN__) || defined(__FreeBSD__) || defined(__APPLE__)
-	#if __cplusplus >= 201703L
-		#undef USE_EXPERIMENTAL_FS
-	#endif
-#endif
-
-#if !defined(ENGINE_KEYBOARD_UK)
-	#define ENGINE_KEYBOARD_UK
-#endif
-
-
-#if defined(USE_EXPERIMENTAL_FS) || defined(FORCE_EXPERIMENTAL_FS)
-	// C++14
-	#define _SILENCE_EXPERIMENTAL_FILESYSTEM_DEPRECATION_WARNING
-	#include <experimental/filesystem>
-	namespace _gfs = std::experimental::filesystem::v1;
-#else
-	// C++17
-	#include <filesystem>
-	namespace _gfs = std::filesystem;
-#endif
-
-#if defined(UNICODE) || defined(_UNICODE)
-	#define engineT(s) L##s
-#else
-	#define engineT(s) s
-#endif
-
-#define UNUSED(x) (void)(x)
-
-// PLATFORM SELECTION
-#if defined(ENGINE_PGE_HEADLESS)
-	#define ENGINE_PLATFORM_HEADLESS
-	#define ENGINE_GFX_HEADLESS
-	#if !defined(ENGINE_IMAGE_STB) && !defined(ENGINE_IMAGE_GDI) && !defined(ENGINE_IMAGE_LIBPNG)
-		#define ENGINE_IMAGE_HEADLESS
-	#endif
-#endif
-
-#if !defined(ENGINE_PLATFORM_WINAPI) && !defined(ENGINE_PLATFORM_X11) && !defined(ENGINE_PLATFORM_GLUT) && !defined(ENGINE_PLATFORM_EMSCRIPTEN) && !defined(ENGINE_PLATFORM_HEADLESS)
-	#if !defined(ENGINE_PLATFORM_CUSTOM_EX)
-		#if defined(_WIN32)
-			#define ENGINE_PLATFORM_WINAPI
-		#endif
-		#if defined(__linux__) || defined(__FreeBSD__)
-			#define ENGINE_PLATFORM_X11
-		#endif
-		#if defined(__APPLE__)
-			#define GL_SILENCE_DEPRECATION
-			#define ENGINE_PLATFORM_GLUT
-		#endif
-		#if defined(__EMSCRIPTEN__)
-			#define ENGINE_PLATFORM_EMSCRIPTEN
-		#endif
-	#endif
-#endif
-
-#if defined(ENGINE_PLATFORM_GLUT) || defined(ENGINE_PLATFORM_EMSCRIPTEN)
-	#define PGE_USE_CUSTOM_START
-#endif
-
-#if !defined(ENGINE_GFX_OPENGL10) && !defined(ENGINE_GFX_OPENGL33) && !defined(ENGINE_GFX_DIRECTX10) && !defined(ENGINE_GFX_HEADLESS)
-	#if !defined(ENGINE_GFX_CUSTOM_EX)
-		#if defined(ENGINE_PLATFORM_EMSCRIPTEN)
-			#define ENGINE_GFX_OPENGL33
-		#else
-			#define ENGINE_GFX_OPENGL10
-		#endif
-	#endif
-#endif
-
-#if !defined(ENGINE_IMAGE_STB) && !defined(ENGINE_IMAGE_GDI) && !defined(ENGINE_IMAGE_LIBPNG) && !defined(ENGINE_IMAGE_HEADLESS)
-	#if !defined(ENGINE_IMAGE_CUSTOM_EX)
-		#if defined(_WIN32)
-			#define	ENGINE_IMAGE_GDI
-		#endif
-		#if defined(__linux__) || defined(__APPLE__) || defined(__FreeBSD__) || defined(__EMSCRIPTEN__)
-			#define	ENGINE_IMAGE_LIBPNG
-		#endif
-	#endif
-#endif
-
-// DEPENDENCIES
-#if !defined(ENGINE_PGE_HEADLESS)
-#if defined(ENGINE_PLATFORM_WINAPI)	
-	#define _WINSOCKAPI_
-		#if !defined(VC_EXTRALEAN)
-		#define VC_EXTRALEAN
-	#endif
-	#if !defined(NOMINMAX)
-		#define NOMINMAX
-	#endif
-
-	#if !defined(_WIN32_WINNT)
-		#ifdef HAVE_MSMF
-			#define _WIN32_WINNT 0x0600
-		#else
-			#define _WIN32_WINNT 0x0500
-		#endif
-	#endif
-
-	#include <windows.h>
-	#undef _WINSOCKAPI_
-#endif
-
-#if defined(ENGINE_PLATFORM_X11)
-	namespace X11
-	{
-		#include <X11/X.h>
-		#include <X11/Xlib.h>
-	}
-#endif
-
-#if defined(ENGINE_PLATFORM_GLUT)
-	#if defined(__linux__)
-		#include <GL/glut.h>
-		#include <GL/freeglut_ext.h>
-	#endif
-	#if defined(__APPLE__)
-		#include <GLUT/glut.h>
-	#include <objc/message.h>
-	#include <objc/NSObjCRuntime.h>
-	#endif
-#endif
-#endif
-
-#if defined(ENGINE_PGE_HEADLESS)
-#if defined max
-#undef max
-#endif
-#if defined min
-#undef min
-#endif
-#endif
-#pragma endregion
+#include "engine/includes.h"
+#include "engine/compiler_conf.h"
 
 #pragma region engine_declaration
 namespace engine {
     class Engine;
+	class EngineX;
+
     class Sprite;
 
-    // ADVANCED ENGINE CONFIG
 	constexpr uint8_t  mouse_buttons = 5;
-	constexpr uint8_t  default_alpha = 0xFF;
 	constexpr uint8_t  tab_size_in_spaces = 4;
-	constexpr uint32_t default_pixel = (default_alpha << 24);
 	constexpr size_t   ENGINE_MAX_VERTS = 128;
 
-	enum Code { 
-        FAIL = 0, 
-        OK = 1, 
-        NO_FILE = -1 
-    };
-
-    struct Pixel {
-        union
-		{
-			uint32_t n = default_pixel;
-			struct { uint8_t r; uint8_t g; uint8_t b; uint8_t a; };
-		};
-
-		enum Mode { 
-            NORMAL, 
-            MASK, 
-            ALPHA, 
-            CUSTOM
-        };
-
-		Pixel();
-		Pixel(uint8_t red, uint8_t green, uint8_t blue, uint8_t alpha = default_alpha);
-		Pixel(uint32_t p);
-
-		Pixel& operator = (const Pixel& v) = default;
-		bool   operator ==(const Pixel& p) const;
-		bool   operator !=(const Pixel& p) const;
-		Pixel  operator * (const float i) const;
-		Pixel  operator / (const float i) const;
-		Pixel& operator *=(const float i);
-		Pixel& operator /=(const float i);
-		Pixel  operator + (const Pixel& p) const;
-		Pixel  operator - (const Pixel& p) const;
-		Pixel& operator +=(const Pixel& p);
-		Pixel& operator -=(const Pixel& p);
-		Pixel  operator * (const Pixel& p) const;
-		Pixel& operator *=(const Pixel& p);
-
-		Pixel  inv() const;
-    };
+	#include "engine/utils/code.h"
+	#include "engine/headers/pixel.h"
 
     Pixel pixel_float(float red, float green, float blue, float alpha = 1.0f);
 	Pixel pixel_lerp(const engine::Pixel& p1, const engine::Pixel& p2, float t);
 
 	static const Pixel
-		WHITE(255, 255, 255), LIGHT_GREY(200, 200, 200), GREY(155, 155, 155), DARK_GREY(55, 55, 55), BLACK(0, 0, 0);
+		GREY(192, 192, 192), DARK_GREY(128, 128, 128), RED(255, 0, 0), DARK_RED(128, 0, 0),
+		YELLOW(255, 255, 0), DARK_YELLOW(128, 128, 0), GREEN(0, 255, 0), DARK_GREEN(0, 128, 0),
+		CYAN(0, 255, 255), DARK_CYAN(0, 128, 128), BLUE(0, 0, 255), DARK_BLUE(0, 0, 128),
+		MAGENTA(255, 0, 255), DARK_MAGENTA(128, 0, 128),
+		WHITE(255, 255, 255), BLACK(0, 0, 0);
 
-    enum Key {
-		NONE,
-		A, B, C, D, E, F, G, H, I, J, K, L, M, N, O, P, Q, R, S, T, U, V, W, X, Y, Z,
-		K0, K1, K2, K3, K4, K5, K6, K7, K8, K9,
-		F1, F2, F3, F4, F5, F6, F7, F8, F9, F10, F11, F12,
-		UP, DOWN, LEFT, RIGHT,
-		SPACE, TAB, SHIFT, CTRL, INS, DEL, HOME, END, PGUP, PGDN,
-		BACK, ESCAPE, RETURN, ENTER, PAUSE, SCROLL,
-		NP0, NP1, NP2, NP3, NP4, NP5, NP6, NP7, NP8, NP9,
-		NP_MUL, NP_DIV, NP_ADD, NP_SUB, NP_DECIMAL, PERIOD,
-		EQUALS, COMMA, MINUS,
-		OEM_1, OEM_2, OEM_3, OEM_4, OEM_5, OEM_6, OEM_7, OEM_8,
-		CAPS_LOCK, ENUM_END
-	};
+	#include "engine/utils/io/key.h"
+	#include "engine/utils/io/mouse.h"
+	#include "engine/utils/io/button_state.h"
 
-    namespace Mouse {
-		static constexpr int32_t LEFT = 0;
-		static constexpr int32_t RIGHT = 1;
-		static constexpr int32_t MIDDLE = 2;
-	};
+	#include "engine/headers/res_buff.h"
+	#include "engine/headers/res_pack.h"
 
-    struct ButtonState {
-		bool pressed = false;
-		bool released = false;
-		bool held = false;
-	};
+	#include "engine/headers/vector2d.h"
 
-#if !defined(ENGINE_IGNORE_VEC2D)
-    template <class T>
-    struct Vector2D {
-		T x = 0;
-		T y = 0;
+	#include "engine/headers/img_loader.h"
+	#include "engine/headers/sprite.h"
+	#include "engine/headers/decal.h"
 
-		Vector2D() : x(0), y(0) {}
-		Vector2D(T _x, T _y) : x(_x), y(_y) {}
-		Vector2D(const Vector2D& v) : x(v.x), y(v.y) {}
+    #include "engine/utils/decal/dec_mode.h"
+    #include "engine/utils/decal/dec_struct.h"
 
-		Vector2D& operator=(const Vector2D& v) = default;
-		
-        T mag () const { return T(std::sqrt(x * x + y * y)); }
-		T mag2() const { return x * x + y * y; }
+    #include "engine/headers/renderable.h"
 
-		Vector2D  norm() const { 
-            T r = 1 / mag(); 
-            return Vector2D(x * r, y * r); 
-        }
+    #include "engine/headers/decal_instance.h"
 
-		Vector2D  perp () const { return Vector2D(-y, x); }
-		Vector2D  floor() const { return Vector2D(std::floor(x), std::floor(y)); }
-		Vector2D  ceil () const { return Vector2D(std::ceil(x), std::ceil(y)); }
+    #include "engine/headers/layer_desc.h"
 
-		Vector2D  max(const Vector2D& v) const { return Vector2D(std::max(x, v.x), std::max(y, v.y)); }
-		Vector2D  min(const Vector2D& v) const { return Vector2D(std::min(x, v.x), std::min(y, v.y)); }
-
-		Vector2D  cart () { return { std::cos(y) * x, std::sin(y) * x }; }
-		Vector2D  polar() { return { mag(), std::atan2(y, x) }; }
-
-		Vector2D  clamp(const Vector2D& v1, const Vector2D& v2) const { return this->max(v1)->min(v2); }
-		Vector2D  lerp (const Vector2D& v1, const double t) { return this->operator*(T(1.0 - t)) + (v1 * T(t)); }
-
-		T dot  (const Vector2D& rhs) const { return this->x * rhs.x + this->y * rhs.y; }
-		T cross(const Vector2D& rhs) const { return this->x * rhs.y - this->y * rhs.x; }
-
-		Vector2D  operator +  (const Vector2D& rhs) const { return Vector2D(this->x + rhs.x, this->y + rhs.y); }
-		Vector2D  operator -  (const Vector2D& rhs) const { return Vector2D(this->x - rhs.x, this->y - rhs.y); }
-
-		Vector2D  operator *  (const T& rhs)           const { return Vector2D(this->x * rhs, this->y * rhs); }
-		Vector2D  operator *  (const Vector2D& rhs)    const { return Vector2D(this->x * rhs.x, this->y * rhs.y); }
-		Vector2D  operator /  (const T& rhs)           const { return Vector2D(this->x / rhs, this->y / rhs); }
-		Vector2D  operator /  (const Vector2D& rhs)    const { return Vector2D(this->x / rhs.x, this->y / rhs.y); }
-
-		Vector2D& operator += (const Vector2D& rhs) { 
-            this->x += rhs.x; this->y += rhs.y; 
-            return *this; 
-        }
-
-		Vector2D& operator -= (const Vector2D& rhs) { 
-            this->x -= rhs.x; this->y -= rhs.y; 
-            return *this; 
-        }
-
-		Vector2D& operator *= (const T& rhs) { 
-            this->x *= rhs; this->y *= rhs; 
-            return *this; 
-        }
-
-		Vector2D& operator /= (const T& rhs) { 
-            this->x /= rhs; this->y /= rhs; 
-            return *this; 
-        }
-
-		Vector2D& operator *= (const Vector2D& rhs) { 
-            this->x *= rhs.x; this->y *= rhs.y; 
-            return *this; 
-        }
-
-		Vector2D& operator /= (const Vector2D& rhs) { 
-            this->x /= rhs.x; this->y /= rhs.y; 
-            return *this; 
-        }
-
-		Vector2D  operator +  () const { return { +x, +y }; }
-		Vector2D  operator -  () const { return { -x, -y }; }
-
-		bool operator == (const Vector2D& rhs) const { return (this->x == rhs.x && this->y == rhs.y); }
-		bool operator != (const Vector2D& rhs) const { return (this->x != rhs.x || this->y != rhs.y); }
-
-		const std::string str() const { return std::string("(") + std::to_string(this->x) + "," + std::to_string(this->y) + ")"; }
-
-		friend std::ostream& operator << (std::ostream& os, const Vector2D& rhs) { os << rhs.str(); return os; }
-
-		operator Vector2D<int32_t>() const { return { static_cast<int32_t>(this->x), static_cast<int32_t>(this->y) }; }
-		operator Vector2D<float>  () const { return { static_cast<float>(this->x), static_cast<float>(this->y) }; }
-		operator Vector2D<double> () const { return { static_cast<double>(this->x), static_cast<double>(this->y) }; }
-	};
-
-    template<class T> inline Vector2D<T> operator * (const float& lhs, const Vector2D<T>& rhs) { 
-        return Vector2D<T>((T)(lhs * (float)rhs.x), (T)(lhs * (float)rhs.y)); 
-    }
-
-	template<class T> inline Vector2D<T> operator * (const double& lhs, const Vector2D<T>& rhs) { 
-        return Vector2D<T>((T)(lhs * (double)rhs.x), (T)(lhs * (double)rhs.y)); 
-    }
-
-	template<class T> inline Vector2D<T> operator * (const int& lhs, const Vector2D<T>& rhs) { 
-        return Vector2D<T>((T)(lhs * (int)rhs.x), (T)(lhs * (int)rhs.y)); 
-    }
-
-	template<class T> inline Vector2D<T> operator / (const float& lhs, const Vector2D<T>& rhs) { 
-        return Vector2D<T>((T)(lhs / (float)rhs.x), (T)(lhs / (float)rhs.y)); 
-    }
-
-	template<class T> inline Vector2D<T> operator / (const double& lhs, const Vector2D<T>& rhs) { 
-        return Vector2D<T>((T)(lhs / (double)rhs.x), (T)(lhs / (double)rhs.y)); 
-    }
-
-	template<class T> inline Vector2D<T> operator / (const int& lhs, const Vector2D<T>& rhs) { 
-        return Vector2D<T>((T)(lhs / (int)rhs.x), (T)(lhs / (int)rhs.y)); 
-    }
-
-	template<class T, class U> inline bool operator < (const Vector2D<T>& lhs, const Vector2D<U>& rhs) { 
-        return lhs.y < rhs.y || (lhs.y == rhs.y && lhs.x < rhs.x); 
-    }
-
-	template<class T, class U> inline bool operator > (const Vector2D<T>& lhs, const Vector2D<U>& rhs) { 
-        return lhs.y > rhs.y || (lhs.y == rhs.y && lhs.x > rhs.x); 
-    }
-
-	typedef Vector2D<int32_t>  int_vector_2d;
-	typedef Vector2D<uint32_t> unsigned_vector_2d;
-	typedef Vector2D<float>    float_vector_2d;
-	typedef Vector2D<double>   double_vector_2d;
-#endif
-
-    struct ResourceBuffer : public std::streambuf {
-		ResourceBuffer(std::ifstream& ifs, uint32_t offset, uint32_t size);
-		std::vector<char> memory;
-	};
-
-    class ResourcePack : public std::streambuf {
-	public:
-		ResourcePack();
-		~ResourcePack();
-
-		bool add(const std::string& file);
-		bool load(const std::string& file, const std::string& key);
-		bool save(const std::string& file, const std::string& key);
-
-		ResourceBuffer get_file_buffer(const std::string& file);
-		bool loaded();
-	private:
-		struct ResourceFile { 
-            uint32_t size; 
-            uint32_t offset; 
-        };
-		std::map<std::string, ResourceFile> files;
-		std::ifstream base_file;
-		std::vector<char> scramble(const std::vector<char>& data, const std::string& key);
-		std::string makeposix(const std::string& path);
-	};
-
-    class ImageLoader {
-	public:
-		ImageLoader() = default;
-		virtual ~ImageLoader() = default;
-
-		virtual engine::Code load_img_resource(engine::Sprite* spr, const std::string& img_file, engine::ResourcePack* pack) = 0;
-		virtual engine::Code save_img_resource(engine::Sprite* spr, const std::string& img_file) = 0;
-	};
-
-    class Sprite {
-	public:
-		Sprite();
-		Sprite(const std::string& img_file, engine::ResourcePack* pack = nullptr);
-		Sprite(int32_t w, int32_t h);
-		Sprite(const engine::Sprite&) = delete;
-		~Sprite();
-
-	public:
-		engine::Code load_from_file(const std::string& img_file, engine::ResourcePack* pack = nullptr);
-
-	public:
-		int32_t width = 0;
-		int32_t height = 0;
-
-		enum Mode { 
-            NORMAL, 
-            PERIODIC, 
-            CLAMP 
-        };
-
-		enum Flip { 
-            NONE = 0, 
-            HORIZ = 1, 
-            VERT = 2 
-        };
-
-	public:
-		void set_sample_mode(engine::Sprite::Mode mode = engine::Sprite::Mode::NORMAL);
-
-		Pixel get_pixel(int32_t x, int32_t y) const;
-		Pixel get_pixel(const engine::int_vector_2d& a) const;
-
-		bool  set_pixel(int32_t x, int32_t y, Pixel p);
-		bool  set_pixel(const engine::int_vector_2d& a, Pixel p);
-
-		Pixel sample(float x, float y) const;
-		Pixel sample(const engine::float_vector_2d& uv) const;
-
-		Pixel sample_BL(float u, float v) const;
-		Pixel sample_BL(const engine::float_vector_2d& uv) const;
-
-		Pixel* get_data();
-
-		engine::Sprite* duplicate();
-		engine::Sprite* duplicate(const engine::int_vector_2d& pos, const engine::int_vector_2d& size);
-
-		engine::int_vector_2d size() const;
-		std::vector<engine::Pixel> col_data;
-		Mode sample_mode = Mode::NORMAL;
-
-		static std::unique_ptr<engine::ImageLoader> loader;
-	};
-
-    class Decal {
-	public:
-		Decal(engine::Sprite* spr, bool filter = false, bool clamp = true);
-		Decal(const uint32_t existing_texture_resource, engine::Sprite* spr);
-		virtual ~Decal();
-
-		void update();
-		void update_sprite();
-
-	public:
-		int32_t id = -1;
-		engine::Sprite* sprite = nullptr;
-		engine::float_vector_2d UV_scale = { 1.0f, 1.0f };
-	};
-
-    enum class DecalMode {
-		NORMAL,
-		ADDITIVE,
-		MULTIPLICATIVE,
-		STENCIL,
-		ILLUMINATE,
-		WIREFRAME,
-		MODEL3D,
-	};
-
-	enum class DecalStructure {
-		LINE,
-		FAN,
-		STRIP,
-		LIST
-	};
-
-    class Renderable {
-	public:
-		Renderable() = default;		
-		Renderable(Renderable&& r) : sprite(std::move(r.sprite)), decal(std::move(r.decal)) {}		
-		Renderable(const Renderable&) = delete;
-
-		engine::Code load(const std::string& file, ResourcePack* pack = nullptr, bool filter = false, bool clamp = true);
-
-		void create(uint32_t width, uint32_t height, bool filter = false, bool clamp = true);
-
-		engine::Decal* Decal() const;
-		engine::Sprite* Sprite() const;
-
-	private:
-		std::unique_ptr<engine::Sprite> sprite = nullptr;
-		std::unique_ptr<engine::Decal> decal = nullptr;
-	};
-
-    struct DecalInstance
-	{
-		engine::Decal* decal = nullptr;
-
-		std::vector<engine::float_vector_2d> pos;
-		std::vector<engine::float_vector_2d> uv;
-		std::vector<float> w;
-		std::vector<engine::Pixel> tint;
-
-		engine::DecalMode mode = engine::DecalMode::NORMAL;
-		engine::DecalStructure structure = engine::DecalStructure::FAN;
-
-		uint32_t points = 0;
-	};
-
-    struct LayerDesc
-	{
-		engine::float_vector_2d offset = { 0, 0 };
-		engine::float_vector_2d scale  = { 1, 1 };
-
-		bool show   = false;
-		bool update = false;
-
-		engine::Renderable draw_target;
-		
-        uint32_t res_ID = 0;
-		std::vector<DecalInstance> decal_instances;
-		engine::Pixel tint = engine::WHITE;
-		std::function<void()> func_hook = nullptr;
-	};
-
-    class Renderer
-	{
-	public:
-		virtual ~Renderer() = default;
-
-		virtual void       prepare_device() = 0;
-
-		virtual engine::Code create_device(std::vector<void*> params, bool fullscreen, bool VSYNC) = 0;
-		virtual engine::Code destroy_device() = 0;
-
-		virtual void       display_frame  () = 0;
-		virtual void       prepare_drawing() = 0;
-		virtual void	   set_decal_mode (const engine::DecalMode& mode) = 0;
-		virtual void       draw_layer_quad(const engine::float_vector_2d& offset, const engine::float_vector_2d& scale, const engine::Pixel tint) = 0;
-		virtual void       draw_decal     (const engine::DecalInstance& decal) = 0;
-		virtual uint32_t   create_texture (const uint32_t width, const uint32_t height, const bool filtered = false, const bool clamp = true) = 0;
-		virtual void       update_texture (uint32_t id, engine::Sprite* spr) = 0;
-		virtual void       read_texture   (uint32_t id, engine::Sprite* spr) = 0;
-		virtual uint32_t   delete_texture (const uint32_t id) = 0;
-		virtual void       apply_texture  (uint32_t id) = 0;
-		virtual void       update_viewport(const engine::int_vector_2d& pos, const engine::int_vector_2d& size) = 0;
-		virtual void       clear_buffer   (engine::Pixel p, bool depth) = 0;
-
-		static engine::Engine* ptr_engine;
-	};
-
-    class Platform
-	{
-	public:
-		virtual ~Platform() = default;
-
-		virtual engine::Code application_startup() = 0;
-		virtual engine::Code application_cleanup() = 0;
-
-		virtual engine::Code thread_startup() = 0;
-		virtual engine::Code thread_cleanup() = 0;
-
-		virtual engine::Code create_graphics(bool fullscreen, bool enable_VSYNC, const engine::int_vector_2d& view_pos, const engine::int_vector_2d& view_size) = 0;
-		virtual engine::Code create_window_pane(const engine::int_vector_2d& window_pos, engine::int_vector_2d& window_size, bool fullscreen) = 0;
-		virtual engine::Code set_window_title(const std::string& s) = 0;
-
-		virtual engine::Code start_system_event_loop() = 0;
-		virtual engine::Code handle_system_event    () = 0;
-
-		static engine::Engine* ptr_engine;
-	};
-
-	class EngineX;
+	#include "engine/headers/renderer.h"
+	#include "engine/headers/platform.h"
 
     static std::unique_ptr<Renderer> renderer;
 	static std::unique_ptr<Platform> platform;
+
 	static std::map<size_t, uint8_t> keys;
 
     class Engine {
@@ -609,11 +65,9 @@ namespace engine {
 		Engine();
 		virtual ~Engine();
     
-	public:
-		engine::Code construct (int32_t screen_w, int32_t screen_h, int32_t pixel_w, int32_t pixel_h, bool fullscreen = false, bool vsync = false, bool cohesion = false);
+		engine::Code construct(int32_t screen_w, int32_t screen_h, int32_t pixel_w, int32_t pixel_h, bool fullscreen = false, bool vsync = false, bool cohesion = false);
 		engine::Code start();
 
-	public:
 		virtual bool on_create();
 		virtual bool on_update(float elapsed_time);
 		virtual bool on_destroy();
@@ -621,7 +75,6 @@ namespace engine {
 		virtual void on_text_entry_complete(const std::string& stext);
 		virtual bool on_console_command(const std::string& sCommand);
 
-	public:
 		bool is_focused() const;
 
 		ButtonState get_key(Key k) const;
@@ -636,7 +89,6 @@ namespace engine {
 
 		static const std::map<size_t, uint8_t>& get_keys() { return keys; }
 
-	public:
 		int32_t screen_width() const;
 		int32_t screen_height() const;
 		
@@ -661,7 +113,6 @@ namespace engine {
         const std::vector<std::string>& get_dropped_files() const;
 		const engine::int_vector_2d& get_dropped_files_point() const;
 
-	public:
 		void set_draw_target (uint8_t layer, bool bDirty = true);
 		void enable_layer    (uint8_t layer, bool b);
 		void set_layer_offset(uint8_t layer, const engine::float_vector_2d& offset);
@@ -674,16 +125,12 @@ namespace engine {
 		std::vector<LayerDesc>& get_layers();
 		uint32_t create_layer();
 
-		// NORMAL = No transparency
-		// MASK   = Transparent if alpha is < 255
-		// ALPHA  = Full transparency
 		void set_pixel_mode(Pixel::Mode m);
 		Pixel::Mode get_pixel_mode();
 
 		void set_pixel_mode(std::function<engine::Pixel(const int x, const int y, const engine::Pixel& src, const engine::Pixel& dest)> pixel_mode);
 		void set_pixel_blend(float blend);
 
-	public: 
 		virtual bool draw(int32_t x, int32_t y, Pixel p = engine::WHITE);
 		bool draw(const engine::int_vector_2d& pos, Pixel p = engine::WHITE);
 
@@ -787,7 +234,6 @@ namespace engine {
 		void update_console();
 
 	public:
-
 #ifdef ENGINE_ENABLE_EXPERIMENTAL
 		void LW3D_View(const std::array<float, 16>& m);
 		void LW3D_World(const std::array<float, 16>& m);
@@ -907,7 +353,6 @@ namespace engine {
 		// chooses which components to compile
 		virtual void engine_configure_system();
 
-	public:
 		friend class EngineX;
 		void enginex_register(engine::EngineX* enginex);
 
@@ -927,102 +372,15 @@ namespace engine {
 		virtual bool on_before_update(float &elapsed_time);
 		virtual void on_after_update (float elapsed_time);
 
-	protected:
 		static Engine* engine;
 	};
 }
 
 #pragma endregion
 
-#pragma region opengl33_iface
+#include "engine/opengl/interface.h"
 
-#if defined(ENGINE_GFX_OPENGL33)
-
-	#if defined(ENGINE_PLATFORM_WINAPI)
-		#include <gl/GL.h>
-		#define CALLSTYLE __stdcall
-	#endif
-
-	#if defined(__linux__) || defined(__FreeBSD__)
-		#include <GL/gl.h>
-	#endif
-
-	#if defined(ENGINE_PLATFORM_X11)
-		namespace X11
-		{#include <GL/glx.h>}
-		#define CALLSTYLE 
-	#endif
-
-	#if defined(__APPLE__)
-		#define GL_SILENCE_DEPRECATION
-		#include <OpenGL/OpenGL.h>
-		#include <OpenGL/gl.h>
-		#include <OpenGL/glu.h>
-	#endif
-
-	#if defined(ENGINE_PLATFORM_EMSCRIPTEN)
-		#include <EGL/egl.h>
-		#include <GLES2/gl2.h>
-		#define GL_GLEXT_PROTOTYPES
-		#include <GLES2/gl2ext.h>
-		#include <emscripten/emscripten.h>
-		#define CALLSTYLE
-		#define GL_CLAMP GL_CLAMP_TO_EDGE
-	#endif
-
-namespace engine {
-	typedef char GLchar;
-	typedef ptrdiff_t GLsizeiptr;
-
-	typedef GLuint CALLSTYLE locCreateShader_t(GLenum type);
-	typedef GLuint CALLSTYLE locCreateProgram_t(void);
-	typedef void CALLSTYLE locDeleteShader_t(GLuint shader);
-	typedef void CALLSTYLE locCompileShader_t(GLuint shader);
-	typedef void CALLSTYLE locLinkProgram_t(GLuint program);
-	typedef void CALLSTYLE locDeleteProgram_t(GLuint program);
-	typedef void CALLSTYLE locAttachShader_t(GLuint program, GLuint shader);
-	typedef void CALLSTYLE locBindBuffer_t(GLenum target, GLuint buffer);
-	typedef void CALLSTYLE locBufferData_t(GLenum target, GLsizeiptr size, const void* data, GLenum usage);
-	typedef void CALLSTYLE locGenBuffers_t(GLsizei n, GLuint* buffers);
-	typedef void CALLSTYLE locVertexAttribPointer_t(GLuint index, GLint size, GLenum type, GLboolean normalized, GLsizei stride, const void* pointer);
-	typedef void CALLSTYLE locEnableVertexAttribArray_t(GLuint index);
-	typedef void CALLSTYLE locUseProgram_t(GLuint program);
-	typedef void CALLSTYLE locBindVertexArray_t(GLuint array);
-	typedef void CALLSTYLE locGenVertexArrays_t(GLsizei n, GLuint* arrays);
-	typedef void CALLSTYLE locGetShaderInfoLog_t(GLuint shader, GLsizei bufSize, GLsizei* length, GLchar* infoLog);
-	typedef GLint CALLSTYLE locGetUniformLocation_t(GLuint program, const GLchar* name);
-	typedef void CALLSTYLE locUniform1f_t(GLint location, GLfloat v0);
-	typedef void CALLSTYLE locUniform1i_t(GLint location, GLint v0);
-	typedef void CALLSTYLE locUniform2fv_t(GLint location, GLsizei count, const GLfloat* value);
-	typedef void CALLSTYLE locActiveTexture_t(GLenum texture);
-	typedef void CALLSTYLE locGenFrameBuffers_t(GLsizei n, GLuint* ids);
-	typedef void CALLSTYLE locBindFrameBuffer_t(GLenum target, GLuint fb);
-	typedef GLenum CALLSTYLE locCheckFrameBufferStatus_t(GLenum target);
-	typedef void CALLSTYLE locDeleteFrameBuffers_t(GLsizei n, const GLuint* fbs);
-	typedef void CALLSTYLE locFrameBufferTexture2D_t(GLenum target, GLenum attachment, GLenum textarget, GLuint texture, GLint level);
-	typedef void CALLSTYLE locDrawBuffers_t(GLsizei n, const GLenum* bufs);
-	typedef void CALLSTYLE locBlendFuncSeparate_t(GLenum srcRGB, GLenum dstRGB, GLenum srcAlpha, GLenum dstAlpha);
-
-#if defined(ENGINE_PLATFORM_WINAPI)
-	typedef void __stdcall locSwapInterval_t(GLsizei n);
 #endif
-
-#if defined(ENGINE_PLATFORM_X11)
-	typedef int(locSwapInterval_t)(X11::Display* dpy, X11::GLXDrawable drawable, int interval);
-#endif
-
-#if defined(ENGINE_PLATFORM_EMSCRIPTEN)
-	typedef void CALLSTYLE locShaderSource_t(GLuint shader, GLsizei count, const GLchar* const* string, const GLint* length);
-	typedef EGLBoolean(locSwapInterval_t)(EGLDisplay display, EGLint interval);
-#else
-	typedef void CALLSTYLE locShaderSource_t(GLuint shader, GLsizei count, const GLchar** string, const GLint* length);
-#endif
-
-}
-#endif
-#pragma endregion
-
-#endif // END ENGINE
 
 #ifdef APPLICATION_DEF
 #undef APPLICATION_DEF

@@ -8,6 +8,8 @@
 #include "utils/vector.h"
 #include "utils/triangle.h"
 #include "utils/matrix.h"
+#include "utils/plain.h"
+#include "utils/chunk.h"
 #include "utils/mesh.h"
 
 using namespace std;
@@ -54,7 +56,7 @@ private:
 			case 10: 
 			case 11: 
 			case 12: 
-				col = engine::LIGHT_GREY;
+				col = engine::WHITE;
 				break;
 			default:
 				col = engine::BLACK;
@@ -67,28 +69,24 @@ public:
 	float *depth_buffer = nullptr;
 	bool on_create() override {
 		//cube_mesh.load_from_obj_file("teapot.obj", false);
-		depth_buffer = new float[screen_width() * screen_height()];
-		
-		cube_mesh.triangles = {
-			{ Vector3D(0.0f, 0.0f, 0.0f),    Vector3D(0.0f, 1.0f, 0.0f),    Vector3D(1.0f, 1.0f, 0.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,}, 
-			{ Vector3D(0.0f, 0.0f, 0.0f),    Vector3D(1.0f, 1.0f, 0.0f),    Vector3D(1.0f, 0.0f, 0.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
-																										
-			{ Vector3D(1.0f, 0.0f, 0.0f),    Vector3D(1.0f, 1.0f, 0.0f),    Vector3D(1.0f, 1.0f, 1.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ Vector3D(1.0f, 0.0f, 0.0f),    Vector3D(1.0f, 1.0f, 1.0f),    Vector3D(1.0f, 0.0f, 1.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
-																										
-			{ Vector3D(1.0f, 0.0f, 1.0f),    Vector3D(1.0f, 1.0f, 1.0f),    Vector3D(0.0f, 1.0f, 1.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ Vector3D(1.0f, 0.0f, 1.0f),    Vector3D(0.0f, 1.0f, 1.0f),    Vector3D(0.0f, 0.0f, 1.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
-																										
-			{ Vector3D(0.0f, 0.0f, 1.0f),    Vector3D(0.0f, 1.0f, 1.0f),    Vector3D(0.0f, 1.0f, 0.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ Vector3D(0.0f, 0.0f, 1.0f),    Vector3D(0.0f, 1.0f, 0.0f),    Vector3D(0.0f, 0.0f, 0.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
-																										
-			{ Vector3D(0.0f, 1.0f, 0.0f),    Vector3D(0.0f, 1.0f, 1.0f),    Vector3D(1.0f, 1.0f, 1.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ Vector3D(0.0f, 1.0f, 0.0f),    Vector3D(1.0f, 1.0f, 1.0f),    Vector3D(1.0f, 1.0f, 0.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
-																										
-			{ Vector3D(1.0f, 0.0f, 1.0f),    Vector3D(0.0f, 0.0f, 1.0f),    Vector3D(0.0f, 0.0f, 0.0f),		0.0f, 1.0f, 1.0f,		0.0f, 0.0f, 1.0f,		1.0f, 0.0f, 1.0f,},
-			{ Vector3D(1.0f, 0.0f, 1.0f),    Vector3D(0.0f, 0.0f, 0.0f),    Vector3D(1.0f, 0.0f, 0.0f),		0.0f, 1.0f, 1.0f,		1.0f, 0.0f, 1.0f,		1.0f, 1.0f, 1.0f,},
-		};
 		//spr_tex1 = new engine::Sprite("stone.png");
+		camera.y = 5.0f;
+		depth_buffer = new float[screen_width() * screen_height()];
+
+		vector<Chunk> chunks;
+		int map_size = 10;
+		for(float x = -(3.0f * map_size); x < (3.0f * map_size); x += 3.0f) {
+			for(float y = -(3.0f * map_size); y < (3.0f * map_size); y += 3.0f) {
+				chunks.push_back(Chunk(x, y));
+			}
+		}
+
+		for(auto chunk : chunks) {
+			for(auto plain : chunk.plains) {
+				cube_mesh.triangles.push_back(plain.top_right);
+				cube_mesh.triangles.push_back(plain.bottom_left);
+			}
+		}
 
 		mat_proj = Matrix4x4::make_projection(90.0f, (float)screen_height() / (float)screen_width(), 0.1f, 1000.0f);
 
@@ -102,6 +100,7 @@ public:
 		if (get_key(engine::Key::DOWN).held)
 			camera.y -= 8.0f * elapsed_time;
 		
+		/*
 		if (get_key(engine::Key::LEFT).held)
 			camera.x -= 8.0f * elapsed_time;
 
@@ -122,6 +121,9 @@ public:
 
 		if (get_key(engine::Key::D).held)
 			yaw += 2.0f * elapsed_time;
+		*/
+		
+		yaw -= 0.25f * elapsed_time;
 
 		Matrix4x4 mat_rot_z, mat_rot_x;
 

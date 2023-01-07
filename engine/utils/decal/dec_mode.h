@@ -1,0 +1,14 @@
+#ifndef DEC_MODE_DEF
+#define DEC_MODE_DEF
+
+enum class DecalMode {
+	NORMAL,
+	ADDITIVE,
+	MULTIPLICATIVE,
+	STENCIL,
+	ILLUMINATE,
+	WIREFRAME,
+	MODEL3D,
+};
+
+#endif
