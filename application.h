@@ -1223,7 +1223,7 @@ namespace engine {
 		int32_t fys = 0, fym = 1, fy = 0;
 		
         if (flip & engine::Sprite::Flip::HORIZ) { 
-            fxs = sprite->width - 1; 
+            fxs = sprite->width - 1;
             fxm = -1; 
         }
 
