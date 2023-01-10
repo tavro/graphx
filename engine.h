@@ -241,7 +241,7 @@ namespace engine {
 
 	private:
 		engine::Sprite*         draw_target = nullptr;
-		Pixel::Mode	            pixel_mode = Pixel::NORMAL;
+		Pixel::Mode	            pixel_mode = Pixel::ALPHA;
 		float		            blend_factor = 1.0f;
 		engine::int_vector_2d	screen_size = { 256, 240 };
 		engine::float_vector_2d	inv_screen_size = { 1.0f / 256.0f, 1.0f / 240.0f };

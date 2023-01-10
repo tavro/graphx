@@ -4,6 +4,7 @@
 #include "demo/state.h"
 #include "demo/tile.h"
 #include "demo/level.h"
+#include "demo/gui/ui_line.h"
 
 using namespace std;
 
@@ -28,8 +29,34 @@ private:
 	void draw_gui_rect(int x, int y, int width, int height, string title) {
 		fill_rect(x, y, width, height, engine::BLUE);
 		draw_rect(x, y, width-1, height-1, engine::DARK_GREY);
-		draw_string(x+1, y+2, title, engine::WHITE);
-		draw_string(x+2, y+height-8-1, "PRESS ANY KEY", engine::BLACK);
+
+		int title_len = title.length()*8;
+		draw_string(x+(width/2)-title_len/2, y+2, title, engine::GREY);
+
+		int offset = y+2+16;
+
+		vector<Line> text_objs;
+		Line line1{"defeat the evil boss", engine::WHITE};
+		text_objs.push_back(line1);
+		Line line2{"head down before going up", engine::WHITE};
+		text_objs.push_back(line2);
+
+		for(auto text_obj : text_objs) {
+			int x_off = x+2;
+			for(auto word : text_obj.words) {
+				if(x_off + word.len*8 > x+width) {
+					x_off = x+2;
+					offset += 8;
+				}
+				draw_string(x_off, offset, word.text, text_obj.color);
+				x_off += (word.len*8+8);
+			}
+			offset+=16;
+		}
+
+		string close = "PRESS ANY KEY";
+		int close_len = close.length()*8;
+		draw_string(x+(width/2)-close_len/2, y+height-8-1, close, engine::BLACK);
 	}
 
 public:
@@ -40,37 +67,53 @@ public:
 
 	bool on_update(float elapsed_time) override {
 		if (get_key(engine::Key::D).pressed) {
-			player_x += 8;
 			dir.x = 1;
 			dir.y = 0;
+			if(!level.get_tile((player_x + 16) / 8, player_y / 8)->is_solid)
+				player_x += 16;
 		}
 		
 		if (get_key(engine::Key::S).pressed) {
-			player_y += 8;
 			dir.x = 0;
 			dir.y = 1;
+			if(!level.get_tile(player_x / 8, (player_y + 16) / 8)->is_solid)
+				player_y += 16;
 		}
 
 		if (get_key(engine::Key::A).pressed) {
-			player_x -= 8;
 			dir.x = -1;
 			dir.y = 0;
+			if(!level.get_tile((player_x - 16) / 8, player_y / 8)->is_solid)
+				player_x -= 16;
 		}
 		
 		if (get_key(engine::Key::W).pressed) {
-			player_y -= 8;
 			dir.x = 0;
 			dir.y = -1;
+			if(!level.get_tile(player_x / 8, (player_y - 16) / 8)->is_solid)
+				player_y -= 16;
 		}
 
 		for (int y = 0; y < screen_height() / 8; ++y) {
 			for (int x = 0; x < screen_width() / 8; ++x) {
-				draw_sprite(level.get_tile(x,y)->pos.x, level.get_tile(x,y)->pos.y, level.get_tile(x,y)->sprite, 1, 0);
+				if((x != 0 && x != (screen_width() / 8)-1) && (y != 0 && y != (screen_width() / 8)-1))
+					draw_sprite(level.get_tile(x,y)->pos.x, level.get_tile(x,y)->pos.y, level.get_tile(x,y)->get_sprite(level.get_tile(x,y-1), 
+																														level.get_tile(x,y+1), 
+																														level.get_tile(x-1,y), 
+																														level.get_tile(x+1,y)), 1, 0);
 			}
 		}
 
-		fill_rect(0, 0, 96, 24, engine::BLACK);
-		fill_rect(player_x, player_y, 8, 8, engine::WHITE);
+		fill_rect(0, 0, 164, 40, engine::BLACK);
+
+		if(dir.x == 1)
+			draw_sprite(player_x, player_y, new engine::Sprite("demo/resources/player-right.png"), 1, 0);
+		else if(dir.x == -1)
+			draw_sprite(player_x, player_y, new engine::Sprite("demo/resources/player-right.png"), 1, 1);
+		else if(dir.y == 1)
+			draw_sprite(player_x, player_y, new engine::Sprite("demo/resources/player-down.png"), 1, 0);
+		else 
+			draw_sprite(player_x, player_y, new engine::Sprite("demo/resources/player-up.png"), 1, 0);
 
 		std::string mouse_x = std::to_string(get_mouse_x());
 		std::string mouse_y = std::to_string(get_mouse_y());
@@ -80,6 +123,9 @@ public:
 		std::string dir_x = std::to_string(dir.x);
 		std::string dir_y = std::to_string(dir.y);
 		draw_string(0, 16, "dir: (" + dir_x + ", " + dir_y + ")", engine::WHITE);
+
+		draw_string(0, 24, "block standing:" + level.get_tile(player_x/8, player_y/8)->block_type, engine::WHITE);
+		draw_string(0, 32, "block infront:" + level.get_tile(player_x/8 + dir.x*2, player_y/8 + dir.y*2)->block_type, engine::WHITE);
 
 		int x_pos = get_mouse_x()/8;
 		int y_pos = get_mouse_y()/8;
@@ -91,10 +137,13 @@ public:
 
 		if(frames_to_appear > 0) {
 			frames_to_appear--;
-			fill_rect(player_x + dir.x*8, player_y + dir.y*8, 8, 8, engine::RED);
+			fill_rect(player_x + dir.x*2*8, player_y + dir.y*2*8, 16, 16, engine::RED);
 		}
 
-		//draw_gui_rect(64, 64, 128, 128, "TITLE");
+		draw_sprite(0, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
+		draw_sprite(8, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
+		draw_sprite(16, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
+		//draw_gui_rect(64, 64, 128, 128, "Welcome");
 
 		return true;
 	}
