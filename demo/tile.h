@@ -8,16 +8,30 @@ public:
     std::string block_type;
 
     bool is_solid;
+    bool is_breakable;
 
-    Tile(std::string path, engine::int_vector_2d p, bool solid, std::string type) {
+    int hitpoints = 3;
+
+    Tile(std::string path, engine::int_vector_2d p, bool solid, bool breakable, std::string type) {
         base_path = path;
         pos = p;
         is_solid = solid;
+        is_breakable = breakable;
         block_type = type;
     }
 
+    void hit(int amount) {
+        if(is_breakable) {
+            if(--hitpoints <= 0) {
+                block_type = "dirt";
+                is_solid = false;
+                is_breakable = false;
+            }
+        }
+    }
+
     engine::Sprite* get_sprite(Tile* ut, Tile* dt, Tile* lt, Tile* rt) {
-        if(block_type == "stone") {
+        if(block_type == "stone" || block_type == "grass") {
             bool u, d, l, r;
 
             u = (ut->block_type == block_type);

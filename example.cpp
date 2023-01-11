@@ -4,6 +4,8 @@
 #include "demo/state.h"
 #include "demo/tile.h"
 #include "demo/level.h"
+#include "demo/player.h"
+#include "demo/menu/menu_state.h"
 #include "demo/gui/ui_line.h"
 
 using namespace std;
@@ -15,16 +17,16 @@ public:
     }
 
 private:
-	State state = State::RUNNING;
+	State state = State::MENU;
+	MenuState menu_state = MenuState::MAIN;
 
 	Level level;
 
-	int player_x = (screen_width() / 8) / 2;
-	int player_y = (screen_height() / 8) / 2 + 1;
+	Player player;
 
 	engine::int_vector_2d dir;
 
-	int frames_to_appear = 32;
+	int frames_to_appear = 16;
 
 	void draw_gui_rect(int x, int y, int width, int height, string title) {
 		fill_rect(x, y, width, height, engine::BLUE);
@@ -65,85 +67,199 @@ public:
 		return true;
 	}
 
+	int selected = 1;
 	bool on_update(float elapsed_time) override {
-		if (get_key(engine::Key::D).pressed) {
-			dir.x = 1;
-			dir.y = 0;
-			if(!level.get_tile((player_x + 16) / 8, player_y / 8)->is_solid)
-				player_x += 16;
-		}
-		
-		if (get_key(engine::Key::S).pressed) {
-			dir.x = 0;
-			dir.y = 1;
-			if(!level.get_tile(player_x / 8, (player_y + 16) / 8)->is_solid)
-				player_y += 16;
-		}
+		if(state == State::MENU) {
+			fill_rect(0, 0, screen_width(), screen_height(), engine::BLACK);
+			if(menu_state == MenuState::MAIN) {
 
-		if (get_key(engine::Key::A).pressed) {
-			dir.x = -1;
-			dir.y = 0;
-			if(!level.get_tile((player_x - 16) / 8, player_y / 8)->is_solid)
-				player_x -= 16;
-		}
-		
-		if (get_key(engine::Key::W).pressed) {
-			dir.x = 0;
-			dir.y = -1;
-			if(!level.get_tile(player_x / 8, (player_y - 16) / 8)->is_solid)
-				player_y -= 16;
-		}
+				string test = "start";
+				string test2 = "how to play";
+				string test3 = "about";
+				string test4 = "quit";
 
-		for (int y = 0; y < screen_height() / 8; ++y) {
-			for (int x = 0; x < screen_width() / 8; ++x) {
-				if((x != 0 && x != (screen_width() / 8)-1) && (y != 0 && y != (screen_width() / 8)-1))
-					draw_sprite(level.get_tile(x,y)->pos.x, level.get_tile(x,y)->pos.y, level.get_tile(x,y)->get_sprite(level.get_tile(x,y-1), 
-																														level.get_tile(x,y+1), 
-																														level.get_tile(x-1,y), 
-																														level.get_tile(x+1,y)), 1, 0);
+				engine::Pixel color = engine::WHITE;
+				engine::Pixel color2 = engine::DARK_GREY;
+				engine::Pixel color3 = engine::DARK_GREY;
+				engine::Pixel color4 = engine::DARK_GREY;
+
+				switch(selected) {
+					case 1:
+						test = "> start <";
+						test2 = "how to play";
+						test3 = "about";
+						test4 = "quit";
+						color = engine::WHITE;
+						color2 = engine::DARK_GREY;
+						color3 = engine::DARK_GREY;
+						color4 = engine::DARK_GREY;
+						break;
+					case 2:
+						test = "start";
+						test2 = "> how to play <";
+						test3 = "about";
+						test4 = "quit";
+						color = engine::DARK_GREY;
+						color2 = engine::WHITE;
+						color3 = engine::DARK_GREY;
+						color4 = engine::DARK_GREY;
+						break;
+					case 3:
+						test = "start";
+						test2 = "how to play";
+						test3 = "> about <";
+						test4 = "quit";
+						color = engine::DARK_GREY;
+						color2 = engine::DARK_GREY;
+						color3 = engine::WHITE;
+						color4 = engine::DARK_GREY;
+						break;
+					case 4:
+						test = "start";
+						test2 = "how to play";
+						test3 = "about";
+						test4 = "> quit <";
+						color = engine::DARK_GREY;
+						color2 = engine::DARK_GREY;
+						color3 = engine::DARK_GREY;
+						color4 = engine::WHITE;
+						break;
+					default:
+						break;
+				}
+
+				draw_string((screen_width()/2)-(test.length()*8)/2, screen_height()/2, test, color);
+				draw_string((screen_width()/2)-(test2.length()*8)/2, screen_height()/2+16, test2, color2);
+				draw_string((screen_width()/2)-(test3.length()*8)/2, screen_height()/2+32, test3, color3);
+				draw_string((screen_width()/2)-(test4.length()*8)/2, screen_height()/2+48, test4, color4);
+
+				if(get_key(engine::Key::S).pressed) {
+					selected++;
+					if(selected > 4)
+						selected = 1;
+				}
+				else if(get_key(engine::Key::W).pressed) {
+					selected--;
+					if(selected < 1)
+						selected = 4;
+				}
+
+				if(get_key(engine::Key::ENTER).pressed) {
+					switch(selected) {
+						case 1:
+							state = State::RUNNING;
+							break;
+						case 2:
+							menu_state = MenuState::TUTOR;
+							break;
+						case 3:
+							menu_state = MenuState::ABOUT;
+							break;
+						case 4:
+							exit(0);
+						default:
+							break;
+					}
+				}
+			}
+			else if(menu_state == MenuState::TUTOR) {
+				draw_gui_rect(0, 0, screen_width(), screen_height(), "How To Play");
+				if(get_key(engine::Key::ENTER).pressed)
+					menu_state = MenuState::MAIN;
+			}
+			else if(menu_state == MenuState::ABOUT) {
+				draw_gui_rect(0, 0, screen_width(), screen_height(), "About");
+				if(get_key(engine::Key::ENTER).pressed)
+					menu_state = MenuState::MAIN;
 			}
 		}
 
-		fill_rect(0, 0, 164, 40, engine::BLACK);
+		if(state == State::RUNNING) {
+			if (get_key(engine::Key::D).pressed) {
+				player.set_dir(1, 0);
+				if(!level.get_tile((player.pos.x + 16) / 8, player.pos.y / 8)->is_solid)
+					player.move();
+			}
+			
+			if (get_key(engine::Key::S).pressed) {
+				player.set_dir(0, 1);
+				if(!level.get_tile(player.pos.x / 8, (player.pos.y + 16) / 8)->is_solid)
+					player.move();
+			}
 
-		if(dir.x == 1)
-			draw_sprite(player_x, player_y, new engine::Sprite("demo/resources/player-right.png"), 1, 0);
-		else if(dir.x == -1)
-			draw_sprite(player_x, player_y, new engine::Sprite("demo/resources/player-right.png"), 1, 1);
-		else if(dir.y == 1)
-			draw_sprite(player_x, player_y, new engine::Sprite("demo/resources/player-down.png"), 1, 0);
-		else 
-			draw_sprite(player_x, player_y, new engine::Sprite("demo/resources/player-up.png"), 1, 0);
+			if (get_key(engine::Key::A).pressed) {
+				player.set_dir(-1, 0);
+				if(!level.get_tile((player.pos.x - 16) / 8, player.pos.y / 8)->is_solid)
+					player.move();
+			}
+			
+			if (get_key(engine::Key::W).pressed) {
+				player.set_dir(0, -1);
+				if(!level.get_tile(player.pos.x / 8, (player.pos.y - 16) / 8)->is_solid)
+					player.move();
+			}
 
-		std::string mouse_x = std::to_string(get_mouse_x());
-		std::string mouse_y = std::to_string(get_mouse_y());
-		draw_string(0, 0, "mouse x:" + mouse_x, engine::WHITE);
-		draw_string(0, 8, "mouse y:" + mouse_y, engine::WHITE);
+			for (int y = 0; y < screen_height() / 8; ++y) {
+				for (int x = 0; x < screen_width() / 8; ++x) {
+					if((x != 0 && x != (screen_width() / 8)-1) && (y != 0 && y != (screen_width() / 8)-1))
+						draw_sprite(level.get_tile(x,y)->pos.x, level.get_tile(x,y)->pos.y, level.get_tile(x,y)->get_sprite(level.get_tile(x,y-1), 
+																															level.get_tile(x,y+1), 
+																															level.get_tile(x-1,y), 
+																															level.get_tile(x+1,y)), 1, 0);
+				}
+			}
 
-		std::string dir_x = std::to_string(dir.x);
-		std::string dir_y = std::to_string(dir.y);
-		draw_string(0, 16, "dir: (" + dir_x + ", " + dir_y + ")", engine::WHITE);
 
-		draw_string(0, 24, "block standing:" + level.get_tile(player_x/8, player_y/8)->block_type, engine::WHITE);
-		draw_string(0, 32, "block infront:" + level.get_tile(player_x/8 + dir.x*2, player_y/8 + dir.y*2)->block_type, engine::WHITE);
+			draw_sprite(player.pos.x, player.pos.y, player.get_sprite(), 1, 0);
 
-		int x_pos = get_mouse_x()/8;
-		int y_pos = get_mouse_y()/8;
-		draw_rect(x_pos*8, y_pos*8, 7, 7, engine::BLACK);
+			/*
+			std::string mouse_x = std::to_string(get_mouse_x());
+			std::string mouse_y = std::to_string(get_mouse_y());
+			draw_string(0, 0, "mouse x:" + mouse_x, engine::WHITE);
+			draw_string(0, 8, "mouse y:" + mouse_y, engine::WHITE);
 
-		if(get_key(engine::Key::SPACE).pressed) {
-			frames_to_appear = 32;
+			std::string dir_x = std::to_string(dir.x);
+			std::string dir_y = std::to_string(dir.y);
+			draw_string(0, 16, "dir: (" + dir_x + ", " + dir_y + ")", engine::WHITE);
+
+			draw_string(0, 24, "block standing:" + level.get_tile(player_x/8, player_y/8)->block_type, engine::WHITE);
+			draw_string(0, 32, "block infront:" + level.get_tile(player_x/8 + dir.x*2, player_y/8 + dir.y*2)->block_type, engine::WHITE);
+
+			int x_pos = get_mouse_x()/8;
+			int y_pos = get_mouse_y()/8;
+			draw_rect(x_pos*8, y_pos*8, 7, 7, engine::BLACK);
+			*/
+
+			if(get_key(engine::Key::SPACE).pressed) {
+				frames_to_appear = 16;
+				level.get_tile((player.pos.x/8) + player.dir.x*2, (player.pos.y/8) + player.dir.y*2)->hit(1);
+				level.get_tile((player.pos.x/8) + player.dir.x*2+1, (player.pos.y/8) + player.dir.y*2)->hit(1);
+				level.get_tile((player.pos.x/8) + player.dir.x*2, (player.pos.y/8) + player.dir.y*2+1)->hit(1);
+				level.get_tile((player.pos.x/8) + player.dir.x*2+1, (player.pos.y/8) + player.dir.y*2+1)->hit(1);
+			}
+
+			/*
+			if(frames_to_appear > 0) {
+				frames_to_appear--;
+				if(level.get_tile(player_x/8 + dir.x*2, player_y/8 + dir.y*2)->is_solid)
+					draw_sprite(player_x + dir.x*2*8, player_y + dir.y*2*8, new engine::Sprite("demo/resources/hit.png"), 1, 0);
+				else {
+					if(dir.x == 1)
+						draw_sprite(player_x + dir.x*2*8, player_y + dir.y*2*8, new engine::Sprite("demo/resources/empty-hit-flipped.png"), 1, 0);
+					else if(dir.x == -1)
+						draw_sprite(player_x + dir.x*2*8, player_y + dir.y*2*8, new engine::Sprite("demo/resources/empty-hit-flipped.png"), 1, 1);
+					else if(dir.y == 1)
+						draw_sprite(player_x + dir.x*2*8, player_y + dir.y*2*8, new engine::Sprite("demo/resources/empty-hit.png"), 1, -1);
+					else 
+						draw_sprite(player_x + dir.x*2*8, player_y + dir.y*2*8, new engine::Sprite("demo/resources/empty-hit.png"), 1, 0);
+				}
+			}
+			*/
+
+			draw_sprite(0, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
+			draw_sprite(8, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
+			draw_sprite(16, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
 		}
-
-		if(frames_to_appear > 0) {
-			frames_to_appear--;
-			fill_rect(player_x + dir.x*2*8, player_y + dir.y*2*8, 16, 16, engine::RED);
-		}
-
-		draw_sprite(0, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
-		draw_sprite(8, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
-		draw_sprite(16, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
-		//draw_gui_rect(64, 64, 128, 128, "Welcome");
 
 		return true;
 	}
