@@ -5,8 +5,8 @@
 #include "demo/tile.h"
 #include "demo/level.h"
 #include "demo/player.h"
-#include "demo/menu/menu_state.h"
 #include "demo/gui/ui_line.h"
+#include "demo/menu/menu.h"
 
 using namespace std;
 
@@ -17,6 +17,8 @@ public:
     }
 
 private:
+	Menu menu{{"start", "how to play", "about", "quit"}, engine::DARK_GREY, engine::WHITE};
+
 	State state = State::MENU;
 	MenuState menu_state = MenuState::MAIN;
 
@@ -67,95 +69,33 @@ public:
 		return true;
 	}
 
-	int selected = 1;
 	bool on_update(float elapsed_time) override {
 		if(state == State::MENU) {
 			fill_rect(0, 0, screen_width(), screen_height(), engine::BLACK);
 			if(menu_state == MenuState::MAIN) {
-
-				string test = "start";
-				string test2 = "how to play";
-				string test3 = "about";
-				string test4 = "quit";
-
-				engine::Pixel color = engine::WHITE;
-				engine::Pixel color2 = engine::DARK_GREY;
-				engine::Pixel color3 = engine::DARK_GREY;
-				engine::Pixel color4 = engine::DARK_GREY;
-
-				switch(selected) {
-					case 1:
-						test = "> start <";
-						test2 = "how to play";
-						test3 = "about";
-						test4 = "quit";
-						color = engine::WHITE;
-						color2 = engine::DARK_GREY;
-						color3 = engine::DARK_GREY;
-						color4 = engine::DARK_GREY;
-						break;
-					case 2:
-						test = "start";
-						test2 = "> how to play <";
-						test3 = "about";
-						test4 = "quit";
-						color = engine::DARK_GREY;
-						color2 = engine::WHITE;
-						color3 = engine::DARK_GREY;
-						color4 = engine::DARK_GREY;
-						break;
-					case 3:
-						test = "start";
-						test2 = "how to play";
-						test3 = "> about <";
-						test4 = "quit";
-						color = engine::DARK_GREY;
-						color2 = engine::DARK_GREY;
-						color3 = engine::WHITE;
-						color4 = engine::DARK_GREY;
-						break;
-					case 4:
-						test = "start";
-						test2 = "how to play";
-						test3 = "about";
-						test4 = "> quit <";
-						color = engine::DARK_GREY;
-						color2 = engine::DARK_GREY;
-						color3 = engine::DARK_GREY;
-						color4 = engine::WHITE;
-						break;
-					default:
-						break;
+				for(int i = 0; i < menu.MAX_INDEX; i++) {
+					draw_string((screen_width()/2)-(menu.get_option(i).length()*8)/2, screen_height()/2+i*16, menu.get_option(i), menu.get_option_col(i));
 				}
-
-				draw_string((screen_width()/2)-(test.length()*8)/2, screen_height()/2, test, color);
-				draw_string((screen_width()/2)-(test2.length()*8)/2, screen_height()/2+16, test2, color2);
-				draw_string((screen_width()/2)-(test3.length()*8)/2, screen_height()/2+32, test3, color3);
-				draw_string((screen_width()/2)-(test4.length()*8)/2, screen_height()/2+48, test4, color4);
 
 				if(get_key(engine::Key::S).pressed) {
-					selected++;
-					if(selected > 4)
-						selected = 1;
+					menu.increase_index();
 				}
 				else if(get_key(engine::Key::W).pressed) {
-					selected--;
-					if(selected < 1)
-						selected = 4;
+					menu.decrease_index();
 				}
 
 				if(get_key(engine::Key::ENTER).pressed) {
-					switch(selected) {
-						case 1:
+					switch(menu.option_index) {
+						case 0:
 							state = State::RUNNING;
 							break;
-						case 2:
+						case 1:
 							menu_state = MenuState::TUTOR;
 							break;
-						case 3:
+						case 2:
 							menu_state = MenuState::ABOUT;
 							break;
-						case 4:
+						case 3:
 							exit(0);
 						default:
 							break;
@@ -256,9 +196,9 @@ public:
 			}
 			*/
 
-			draw_sprite(0, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
-			draw_sprite(8, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
-			draw_sprite(16, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
+			//draw_sprite(0, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
+			//draw_sprite(8, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
+			//draw_sprite(16, screen_height()-8, new engine::Sprite("demo/resources/heart.png"), 1, 0);
 		}
 
 		return true;
