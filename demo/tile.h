@@ -19,6 +19,8 @@ public:
         block_type = type;
     }
 
+    virtual ~Tile() = default;
+
     engine::Sprite* get_sprite(Tile* ut, Tile* dt, Tile* lt, Tile* rt) {
         if(block_type == "stone" || block_type == "grass") {
             bool u, d, l, r;

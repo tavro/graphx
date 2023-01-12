@@ -10,6 +10,7 @@
 #include "demo/recipe.h"
 #include "demo/gui/ui_line.h"
 #include "demo/menu/menu.h"
+#include <typeinfo>
 
 using namespace std;
 
@@ -214,7 +215,7 @@ public:
 				drawy = (player.tile_pos.y*8);
 
 			int multiplier = 1;
-			if(player.dir.y == -1)
+			if(player.dir.y == -1 || player.dir.x == -1)
 				multiplier -1;
 
 			if(drawx%16 == 8)
@@ -273,11 +274,13 @@ public:
 						int tiley = (drawy + player.dir.y*16)/8 + 1*j;
 
 						//TODO: Check if tile is BreakableTile
-						BreakableTile* breakable = (BreakableTile*)level.get_tile(tilex, tiley);
-						if (breakable->hit()) {
-							items.push_back(breakable->drop_item);
-							Tile* tile = new Tile("demo/resources/", engine::int_vector_2d(tilex*8, tiley*8), false, "dirt");
-							level.set_tile(tilex, tiley, tile);
+						BreakableTile *b=dynamic_cast<BreakableTile*>(level.get_tile(tilex, tiley));
+						if(b) {
+							if (b->hit()) {
+								items.push_back(b->drop_item);
+								Tile* tile = new Tile("demo/resources/", engine::int_vector_2d(tilex*8, tiley*8), false, "dirt");
+								level.set_tile(tilex, tiley, tile);
+							}
 						}
 					}
 				}
