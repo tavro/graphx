@@ -1,3 +1,6 @@
+#ifndef TILE_DEF
+#define TILE_DEF
+
 #include <string>
 
 class Tile {
@@ -8,26 +11,12 @@ public:
     std::string block_type;
 
     bool is_solid;
-    bool is_breakable;
 
-    int hitpoints = 3;
-
-    Tile(std::string path, engine::int_vector_2d p, bool solid, bool breakable, std::string type) {
+    Tile(std::string path, engine::int_vector_2d p, bool solid, std::string type) {
         base_path = path;
         pos = p;
         is_solid = solid;
-        is_breakable = breakable;
         block_type = type;
-    }
-
-    void hit(int amount) {
-        if(is_breakable) {
-            if(--hitpoints <= 0) {
-                block_type = "dirt";
-                is_solid = false;
-                is_breakable = false;
-            }
-        }
     }
 
     engine::Sprite* get_sprite(Tile* ut, Tile* dt, Tile* lt, Tile* rt) {
@@ -68,3 +57,5 @@ public:
 
 private:
 };
+
+#endif

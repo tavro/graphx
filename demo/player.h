@@ -1,6 +1,14 @@
+#include "inventory.h"
+
 class Player {
 public:
+    Inventory inventory;
+
     engine::int_vector_2d pos;
+
+    engine::int_vector_2d pixel_pos{0,0};
+    engine::int_vector_2d tile_pos{0,0};
+
     engine::int_vector_2d dir;
 
     Player() {
@@ -19,6 +27,11 @@ public:
     void move() {
         pos.x += dir.x*16;
         pos.y += dir.y*16;
+
+        pixel_pos.x+=dir.x;
+        pixel_pos.y+=dir.y;
+        tile_pos.x = pixel_pos.x/8;
+        tile_pos.y = pixel_pos.y/8;
     }
 
     engine::Sprite* get_sprite() {
