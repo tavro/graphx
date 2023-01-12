@@ -9,7 +9,10 @@
 #include "demo/player.h"
 #include "demo/recipe.h"
 #include "demo/gui/ui_line.h"
+#include "demo/gui/ui_inventory.h"
+#include "demo/gui/ui_crafting.h"
 #include "demo/menu/menu.h"
+#include "demo/gui/ui_component.h"
 #include <typeinfo>
 
 using namespace std;
@@ -35,43 +38,54 @@ private:
 	RecipeItem needed{"rock", 8};
 	Recipe oven_recipe{ovens, needed};
 
-	void draw_gui_rect(int x, int y, int width, int height, string title) {
-		fill_rect(x, y, width, height, engine::BLUE);
-		draw_rect(x, y, width-1, height-1, engine::DARK_GREY);
+	ComponentUI tutorial{0, 0, screen_width(), screen_height(), "HOW TO PLAY", engine::DARK_GREY, engine::BLUE, engine::BLACK};
+	ComponentUI about{0, 0, screen_width(), screen_height(), "ABOUT", engine::DARK_GREY, engine::BLUE, engine::BLACK};
 
-		int title_len = title.length()*8;
-		draw_string(x+(width/2)-title_len/2, y+2, title, engine::GREY);
-
-		int offset = y+2+16;
-
-		vector<Line> text_objs;
-		Line line1{"defeat the evil boss", engine::WHITE};
-		text_objs.push_back(line1);
-		Line line2{"head down before going up", engine::WHITE};
-		text_objs.push_back(line2);
-
-		for(auto text_obj : text_objs) {
-			int x_off = x+2;
-			for(auto word : text_obj.words) {
-				if(x_off + word.len*8 > x+width) {
-					x_off = x+2;
-					offset += 8;
-				}
-				draw_string(x_off, offset, word.text, text_obj.color);
-				x_off += (word.len*8+8);
-			}
-			offset+=16;
-		}
-
-		string close = "PRESS ANY KEY";
-		int close_len = close.length()*8;
-		draw_string(x+(width/2)-close_len/2, y+height-8-1, close, engine::BLACK);
-	}
+	InventoryUI inv_ui{&player.inventory};
+	CraftingUI craft_ui{&player.inventory, &oven_recipe};
 
 	const int OFFSET = 2;
 
 	float x_timer = 0.0f;
 	float y_timer = 0.0f;
+
+    void draw(ComponentUI component) {
+        fill_rect(component.pos.x, component.pos.y, component.size.x, component.size.y, component.inside_color);
+		draw_rect(component.pos.x, component.pos.y, component.size.x-1, component.size.y-1, component.border_color);
+
+		int title_len = component.title.length()*8;
+		draw_string(component.pos.x+(component.size.x/2)-title_len/2, component.pos.y+2, component.title, component.text_color);
+
+		std::string exit_str = "ENTER TO CLOSE";
+		int exit_str_len = exit_str.length()*8;
+		draw_string(component.pos.x+(component.size.x/2)-exit_str_len/2, component.pos.y+component.size.y-8-1, exit_str, component.text_color);
+    }
+
+	void draw_inventory() {
+		draw(inv_ui.component);
+		int x_offset = 4;
+		for(Line* line : inv_ui.get_lines()) {
+			x_offset += 8;
+			int y_offset = 4;
+			for(Word word : line->words) {
+				draw_string(inv_ui.component.pos.x + y_offset, inv_ui.component.pos.y + x_offset, word.text, line->color);
+				y_offset += word.len*8+8;
+			}
+		}
+	}
+
+	void draw_crafting() {
+		draw(craft_ui.component);
+		int x_offset = 4;
+		for(Line* line : craft_ui.get_lines()) {
+			x_offset += 8;
+			int y_offset = 4;
+			for(Word word : line->words) {
+				draw_string(craft_ui.component.pos.x + y_offset, craft_ui.component.pos.y + x_offset, word.text, line->color);
+				y_offset += word.len*8+8;
+			}
+		}
+	}
 
 public:
 	bool on_create() override {
@@ -113,12 +127,12 @@ public:
 				}
 			}
 			else if(menu.state == MenuState::TUTOR) {
-				draw_gui_rect(0, 0, screen_width(), screen_height(), "How To Play");
+				draw(tutorial);
 				if(get_key(engine::Key::ENTER).pressed)
 					menu.state = MenuState::MAIN;
 			}
 			else if(menu.state == MenuState::ABOUT) {
-				draw_gui_rect(0, 0, screen_width(), screen_height(), "About");
+				draw(about);
 				if(get_key(engine::Key::ENTER).pressed)
 					menu.state = MenuState::MAIN;
 			}
@@ -215,7 +229,7 @@ public:
 				drawy = (player.tile_pos.y*8);
 
 			int multiplier = 1;
-			if(player.dir.y == -1 || player.dir.x == -1)
+			if(player.dir.y == -1)
 				multiplier -1;
 
 			if(drawx%16 == 8)
@@ -223,15 +237,8 @@ public:
 			if(drawy%16 == 8)
 				drawy+=8 * multiplier;
 
-
 			//draw_rect(drawx, drawy, 16, 16, engine::RED);
 			//draw_rect(drawx + player.dir.x*16, drawy + player.dir.y*16, 16, 16, engine::BLACK);
-
-			fill_rect(screen_width()-96, screen_height()-16, 96, 16, engine::BLUE);
-			draw_rect(screen_width()-96, screen_height()-16, 96-1, 16-1, engine::DARK_GREY);
-
-			std::string item_amount = std::to_string(player.inventory.get_item_amount("rock"));
-			draw_string(screen_width()-96+4, screen_height()-16+4, item_amount + " - rock", engine::WHITE);
 
 			/*
 			std::string mouse_x = std::to_string(get_mouse_x());
@@ -273,7 +280,6 @@ public:
 						int tilex = (drawx + player.dir.x*16)/8 + 1*i;
 						int tiley = (drawy + player.dir.y*16)/8 + 1*j;
 
-						//TODO: Check if tile is BreakableTile
 						BreakableTile *b=dynamic_cast<BreakableTile*>(level.get_tile(tilex, tiley));
 						if(b) {
 							if (b->hit()) {
@@ -292,6 +298,30 @@ public:
 					draw_sprite(hit_effect->pos.x, hit_effect->pos.y, hit_effect->sprite, 1, 0);
 				else
 					hit_effect = nullptr;
+			}
+
+			if(get_key(engine::Key::I).pressed)
+				inv_ui.is_open = !inv_ui.is_open;
+
+			if(inv_ui.is_open) {
+				draw_inventory();
+				if(get_key(engine::Key::DOWN).pressed)
+					player.inventory.next_item();
+				else if(get_key(engine::Key::UP).pressed)
+					player.inventory.previous_item();
+			}
+
+			if(get_key(engine::Key::C).pressed)
+				craft_ui.is_open = !craft_ui.is_open;
+			
+			if(craft_ui.is_open) {
+				draw_crafting();
+				if(get_key(engine::Key::DOWN).pressed)
+					craft_ui.next_recipe();
+				else if(get_key(engine::Key::UP).pressed)
+					craft_ui.previous_recipe();
+				if(get_key(engine::Key::ENTER).pressed)
+					craft_ui.craft_active();
 			}
 		}
 

@@ -4,17 +4,15 @@ class Player {
 public:
     Inventory inventory;
 
-    engine::int_vector_2d pos;
-
     engine::int_vector_2d pixel_pos{0,0};
     engine::int_vector_2d tile_pos{0,0};
 
     engine::int_vector_2d dir;
 
-    Player() {
-        pos.x = 16;
-        pos.y = 16;
+    float time_elapsed = 0.0f;
+    int animation_frame = 1;
 
+    Player() {
         dir.x = 1;
         dir.y = 0;
     }
@@ -25,9 +23,13 @@ public:
     }
 
     void move() {
-        pos.x += dir.x*16;
-        pos.y += dir.y*16;
-
+        time_elapsed += 0.01f;
+        if(time_elapsed >= 0.15f) {
+            time_elapsed = 0.0f;
+            if(++animation_frame > 2)
+                animation_frame = 1;
+        }
+                
         pixel_pos.x+=dir.x;
         pixel_pos.y+=dir.y;
         tile_pos.x = pixel_pos.x/8;
@@ -35,13 +37,14 @@ public:
     }
 
     engine::Sprite* get_sprite() {
+        std::string frame = std::to_string(animation_frame);
         if(dir.x == 1)
-			return new engine::Sprite("demo/resources/player-right.png");
+			return new engine::Sprite("demo/resources/player-right-" + frame + ".png");
 		else if(dir.x == -1)
-			return new engine::Sprite("demo/resources/player-left.png");
+			return new engine::Sprite("demo/resources/player-left-" + frame + ".png");
 		else if(dir.y == 1)
-			return new engine::Sprite("demo/resources/player-down.png");
-		return new engine::Sprite("demo/resources/player-up.png");
+			return new engine::Sprite("demo/resources/player-down-" + frame + ".png");
+		return new engine::Sprite("demo/resources/player-up-" + frame + ".png");
     }
 
 };
