@@ -27,7 +27,13 @@ private:
 	State state = State::MENU;
 	Menu menu{{"start", "how to play", "about", "quit"}, engine::DARK_GREY, engine::WHITE};
 
-	Level level;
+	Chunk level;
+	
+	int chunk_x = 0;
+	int chunk_y = 0;
+
+	Chunk* chunks[10][10];
+
 	Player player;
 
 	Effect* hit_effect = nullptr;
@@ -89,7 +95,7 @@ private:
 
 public:
 	bool on_create() override {
-		
+		chunks[chunk_x][chunk_y] = new Chunk();
 		return true;
 	}
 
@@ -145,11 +151,21 @@ public:
 					x_timer = 0.0f;
 					player.set_dir(-1, 0);
 
-					if(player.pixel_pos.x == 0)
+					if(player.pixel_pos.x == 0 && chunk_x > 0) {
+						chunk_x--;
+						if(!chunks[chunk_x][chunk_y])
+							chunks[chunk_x][chunk_y] = new Chunk();
 						player.set_position(screen_width()-16, player.pixel_pos.y);
-
-					if (!level.get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y+OFFSET)/8))->is_solid && 
-						!level.get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y-OFFSET)/8)+2)->is_solid) {
+					}
+					else if(player.pixel_pos.x == 0 && chunk_x == 0) { 
+						chunk_x=9;
+						if(!chunks[chunk_x][chunk_y])
+							chunks[chunk_x][chunk_y] = new Chunk();
+						player.set_position(screen_width()-16, player.pixel_pos.y);
+					}
+					
+					if (!chunks[chunk_x][chunk_y]->get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y+OFFSET)/8))->is_solid && 
+						!chunks[chunk_x][chunk_y]->get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y-OFFSET)/8)+2)->is_solid) {
 						player.move();
 					}
 				}
@@ -160,11 +176,21 @@ public:
 					x_timer = 0.0f;
 					player.set_dir(1, 0);
 
-					if(player.pixel_pos.x == screen_width()-17)
+					if(player.pixel_pos.x == screen_width()-17 && chunk_x < 9) {
+						chunk_x++;
+						if(!chunks[chunk_x][chunk_y])
+							chunks[chunk_x][chunk_y] = new Chunk();
 						player.set_position(0, player.pixel_pos.y);
+					}
+					else if(player.pixel_pos.x == screen_width()-17 && chunk_x == 9) {
+						chunk_x=0;
+						if(!chunks[chunk_x][chunk_y])
+							chunks[chunk_x][chunk_y] = new Chunk();
+						player.set_position(0, player.pixel_pos.y);
+					}
 
-					if (!level.get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y-OFFSET)/8)+2)->is_solid && 
-						!level.get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y+OFFSET)/8))->is_solid) {
+					if (!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y-OFFSET)/8)+2)->is_solid && 
+						!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y+OFFSET)/8))->is_solid) {
 						player.move();
 					}
 				}
@@ -176,11 +202,21 @@ public:
 					y_timer = 0.0f;
 					player.set_dir(0, -1);
 
-					if(player.pixel_pos.y == 0)
+					if(player.pixel_pos.y == 0 && chunk_y > 0) {
+						chunk_y--;
+						if(!chunks[chunk_x][chunk_y])
+							chunks[chunk_x][chunk_y] = new Chunk();
 						player.set_position(player.pixel_pos.x, screen_height()-16);
+					}
+					else if(player.pixel_pos.y == 0 && chunk_y == 0) {
+						chunk_y=9;
+						if(!chunks[chunk_x][chunk_y])
+							chunks[chunk_x][chunk_y] = new Chunk();
+						player.set_position(player.pixel_pos.x, screen_height()-16);
+					}
 
-					if (!level.get_tile(((player.pixel_pos.x+OFFSET)/8), (player.pixel_pos.y-1)/8)->is_solid && 
-						!level.get_tile(((player.pixel_pos.x-OFFSET)/8)+2, (player.pixel_pos.y-1)/8)->is_solid) {
+					if (!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+OFFSET)/8), (player.pixel_pos.y-1)/8)->is_solid && 
+						!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x-OFFSET)/8)+2, (player.pixel_pos.y-1)/8)->is_solid) {
 						player.move();
 					}
 				}
@@ -191,11 +227,21 @@ public:
 					y_timer = 0.0f;
 					player.set_dir(0, 1);
 
-					if(player.pixel_pos.y == screen_height()-16)
+					if(player.pixel_pos.y == screen_height()-16 && chunk_y < 9) {
+						chunk_y++;
+						if(!chunks[chunk_x][chunk_y])
+							chunks[chunk_x][chunk_y] = new Chunk();
 						player.set_position(player.pixel_pos.x, 8);
+					}
+					else if(player.pixel_pos.y == screen_height()-16 && chunk_y == 9) {
+						chunk_y=0;
+						if(!chunks[chunk_x][chunk_y])
+							chunks[chunk_x][chunk_y] = new Chunk();
+						player.set_position(player.pixel_pos.x, 8);
+					}
 
-					if (!level.get_tile(((player.pixel_pos.x-OFFSET)/8)+2, ((player.pixel_pos.y+1)/8)+2)->is_solid && 
-						!level.get_tile(((player.pixel_pos.x+2)/8), ((player.pixel_pos.y+1)/8)+2)->is_solid) {
+					if (!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x-OFFSET)/8)+2, ((player.pixel_pos.y+1)/8)+2)->is_solid && 
+						!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+2)/8), ((player.pixel_pos.y+1)/8)+2)->is_solid) {
 						player.move();
 					}
 				}
@@ -204,10 +250,10 @@ public:
 			for (int y = 0; y < screen_height() / 8; ++y) {
 				for (int x = 0; x < screen_width() / 8; ++x) {
 					if((x != 0 && x != (screen_width() / 8)-1) && (y != 0 && y != (screen_width() / 8)-1))
-						draw_sprite(level.get_tile(x,y)->pos.x, level.get_tile(x,y)->pos.y, level.get_tile(x,y)->get_sprite(level.get_tile(x,y-1), 
-																															level.get_tile(x,y+1), 
-																															level.get_tile(x-1,y), 
-																															level.get_tile(x+1,y)), 1, 0);
+						draw_sprite(chunks[chunk_x][chunk_y]->get_tile(x,y)->pos.x, chunks[chunk_x][chunk_y]->get_tile(x,y)->pos.y, chunks[chunk_x][chunk_y]->get_tile(x,y)->get_sprite(chunks[chunk_x][chunk_y]->get_tile(x,y-1), 
+																															chunks[chunk_x][chunk_y]->get_tile(x,y+1), 
+																															chunks[chunk_x][chunk_y]->get_tile(x-1,y), 
+																															chunks[chunk_x][chunk_y]->get_tile(x+1,y)), 1, 0);
 				}
 			}
 
@@ -215,7 +261,6 @@ public:
 				draw_sprite(items[i]->pos.x, items[i]->pos.y, items[i]->sprite, 1, 0);
 				items[i]->tick();
 
-				//TODO: use new playerpos
 				if (((items[i]->pos.x >= player.pixel_pos.x && items[i]->pos.x <= player.pixel_pos.x+16) &&
 					(items[i]->pos.y >= player.pixel_pos.y && items[i]->pos.y <= player.pixel_pos.y+16)) || 
 					((items[i]->pos.x+8 >= player.pixel_pos.x && items[i]->pos.x+8 <= player.pixel_pos.x+16) &&
@@ -292,12 +337,12 @@ public:
 						int tilex = (drawx + player.dir.x*16)/8 + 1*i;
 						int tiley = (drawy + player.dir.y*16)/8 + 1*j;
 
-						BreakableTile *b=dynamic_cast<BreakableTile*>(level.get_tile(tilex, tiley));
+						BreakableTile *b=dynamic_cast<BreakableTile*>(chunks[chunk_x][chunk_y]->get_tile(tilex, tiley));
 						if(b) {
 							if (b->hit()) {
 								items.push_back(b->drop_item);
 								Tile* tile = new Tile("demo/resources/", engine::int_vector_2d(tilex*8, tiley*8), false, "dirt");
-								level.set_tile(tilex, tiley, tile);
+								chunks[chunk_x][chunk_y]->set_tile(tilex, tiley, tile);
 							}
 						}
 					}
