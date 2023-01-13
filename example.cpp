@@ -270,7 +270,9 @@ public:
 					}
 			}
 			draw_sprite(player.pixel_pos.x, player.pixel_pos.y, player.get_sprite(), 1, 0);
-
+			if(player.inventory.get_active_item() == "crafting-table" || player.inventory.get_active_item() == "oven" || player.inventory.get_active_item() == "chest") {
+				draw_sprite(player.pixel_pos.x, player.pixel_pos.y - 16, new engine::Sprite("demo/resources/" + player.inventory.get_active_item() + "-tile.png"), 1, 0);
+			}
 				
 			int drawx = 0; 
 			int drawy = 0;
@@ -293,56 +295,26 @@ public:
 				drawx+=8 * multiplier;
 			if(drawy%16 == 8)
 				drawy+=8 * multiplier;
-
-			//draw_rect(drawx, drawy, 16, 16, engine::RED);
-			//draw_rect(drawx + player.dir.x*16, drawy + player.dir.y*16, 16, 16, engine::BLACK);
-
-			/*
-			std::string mouse_x = std::to_string(get_mouse_x());
-			std::string mouse_y = std::to_string(get_mouse_y());
-			draw_string(0, 0, "mouse x:" + mouse_x, engine::WHITE);
-			draw_string(0, 8, "mouse y:" + mouse_y, engine::WHITE);
-
-			std::string dir_x = std::to_string(dir.x);	
-			std::string dir_y = std::to_string(dir.y);
-			draw_string(0, 16, "dir: (" + dir_x + ", " + dir_y + ")", engine::WHITE);
-
-			draw_string(0, 24, "block standing:" + level.get_tile(player_x/8, player_y/8)->block_type, engine::WHITE);
-			draw_string(0, 32, "block infront:" + level.get_tile(player_x/8 + dir.x*2, player_y/8 + dir.y*2)->block_type, engine::WHITE);
-
-			int x_pos = get_mouse_x()/8;
-			int y_pos = get_mouse_y()/8;
-			draw_rect(x_pos*8, y_pos*8, 7, 7, engine::BLACK);
-
-			fill_rect(0, screen_height()-96, 96, 96, engine::BLUE);
-			draw_rect(0, screen_height()-96, 96-1, 96-1, engine::DARK_GREY);
-			draw_string(0+4, screen_height()-96+4, "OVEN", engine::WHITE);
-			for(RecipeItem i : oven_recipe.needed_items) {
-				std::string amnt = std::to_string(i.amount);
-				draw_string(0+4, screen_height()-96+8+4, i.item_type + ":" + amnt, engine::GREY);
-			}
-			if(oven_recipe.can_craft(player.inventory)) {
-				draw_string(0+4, screen_height()-96+16+4, "CRAFT - C", engine::WHITE);
-				if(get_key(engine::Key::C).pressed) {
-					player.inventory.add_item_stack(oven_recipe.craft(player.inventory));
-				}
-			}
-			*/
 			
 			if (get_key(engine::Key::SPACE).pressed) {
-				hit_effect = new Effect(drawx + player.dir.x*16, drawy + player.dir.y*16, new engine::Sprite("demo/resources/hit.png"), 16);
+				if(player.inventory.get_active_item() == "crafting-table" || player.inventory.get_active_item() == "oven" || player.inventory.get_active_item() == "chest") {
+					//TODO: Place active item & remove from inventory
+				}
+				else {
+					hit_effect = new Effect(drawx + player.dir.x*16, drawy + player.dir.y*16, new engine::Sprite("demo/resources/hit.png"), 16);
 
-				for(int i = 0; i < 2; i++) {
-					for(int j = 0; j < 2; j++) {
-						int tilex = (drawx + player.dir.x*16)/8 + 1*i;
-						int tiley = (drawy + player.dir.y*16)/8 + 1*j;
+					for(int i = 0; i < 2; i++) {
+						for(int j = 0; j < 2; j++) {
+							int tilex = (drawx + player.dir.x*16)/8 + 1*i;
+							int tiley = (drawy + player.dir.y*16)/8 + 1*j;
 
-						BreakableTile *b=dynamic_cast<BreakableTile*>(chunks[chunk_x][chunk_y]->get_tile(tilex, tiley));
-						if(b) {
-							if (b->hit()) {
-								items.push_back(b->drop_item);
-								Tile* tile = new Tile("demo/resources/", engine::int_vector_2d(tilex*8, tiley*8), false, "dirt");
-								chunks[chunk_x][chunk_y]->set_tile(tilex, tiley, tile);
+							BreakableTile *b=dynamic_cast<BreakableTile*>(chunks[chunk_x][chunk_y]->get_tile(tilex, tiley));
+							if(b) {
+								if (b->hit()) {
+									items.push_back(b->drop_item);
+									Tile* tile = new Tile("demo/resources/", engine::int_vector_2d(tilex*8, tiley*8), false, "dirt");
+									chunks[chunk_x][chunk_y]->set_tile(tilex, tiley, tile);
+								}
 							}
 						}
 					}
@@ -381,7 +353,7 @@ public:
 					craft_ui.craft_active();
 			}
 
-			if(player.inventory.get_active_item() != "nothing") {
+			if(player.inventory.get_active_item() != "nothing" && !inv_ui.is_open) {
 				fill_rect(screen_width()-128, screen_height()-16, 128, 16, engine::BLUE);
 				draw_rect(screen_width()-128, screen_height()-16, 128-1, 16-1, engine::DARK_GREY);
 				draw_string(screen_width()-128+12, screen_height()-16+4, player.inventory.get_active_item(), engine::BLACK);
