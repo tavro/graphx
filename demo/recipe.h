@@ -12,6 +12,12 @@ public:
         needed_items.push_back(item);
     }
 
+    Recipe(ItemStack* res, RecipeItem item1, RecipeItem item2) {
+        result = res;
+        needed_items.push_back(item1);
+        needed_items.push_back(item2);
+    }
+
     bool can_craft(Inventory inventory) {
         for(RecipeItem item : needed_items) {
             if(inventory.get_item_amount(item.item_type) < item.amount)

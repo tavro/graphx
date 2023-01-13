@@ -11,7 +11,9 @@ public:
     }
     
     std::string get_active_item() {
-        return item_stacks[active_item]->item_type;
+        if(item_stacks.size() > 0)
+            return item_stacks[active_item]->item_type;
+        return "nothing";
     }
 
     void previous_item() {

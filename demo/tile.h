@@ -54,6 +54,16 @@ public:
                     return new engine::Sprite(base_path + block_type + "-bottom.png");
             }
         }
+        else if(block_type == "tree") {
+            if(pos.x%16 == 8 && pos.y%16 == 8)
+                return new engine::Sprite(base_path + block_type + "-bottom-right.png");
+            else if(pos.x%16 == 8 && pos.y%16 == 0)
+                return new engine::Sprite(base_path + block_type + "-top-right.png");
+            else if(pos.x%16 == 0 && pos.y%16 == 8)
+                return new engine::Sprite(base_path + block_type + "-bottom-left.png");
+            else if(pos.x%16 == 0 && pos.y%16 == 0)
+                return new engine::Sprite(base_path + block_type + "-top-left.png");
+        }
         return new engine::Sprite(base_path + block_type + ".png");
     }
 

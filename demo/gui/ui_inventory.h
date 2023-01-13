@@ -2,7 +2,7 @@
 class InventoryUI {
 public:
     Inventory* inventory;
-    ComponentUI component{0, 0, 128, 128, "INVENTORY", engine::DARK_GREY, engine::BLUE, engine::BLACK};
+    ComponentUI component{0, 0, 192, 128, "INVENTORY", engine::DARK_GREY, engine::BLUE, engine::BLACK};
 
     bool is_open = false;
 

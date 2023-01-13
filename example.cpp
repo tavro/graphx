@@ -34,15 +34,11 @@ private:
 
 	vector<Item*> items;
 
-	ItemStack* ovens = new ItemStack("oven");
-	RecipeItem needed{"rock", 8};
-	Recipe oven_recipe{ovens, needed};
-
 	ComponentUI tutorial{0, 0, screen_width(), screen_height(), "HOW TO PLAY", engine::DARK_GREY, engine::BLUE, engine::BLACK};
 	ComponentUI about{0, 0, screen_width(), screen_height(), "ABOUT", engine::DARK_GREY, engine::BLUE, engine::BLACK};
 
 	InventoryUI inv_ui{&player.inventory};
-	CraftingUI craft_ui{&player.inventory, &oven_recipe};
+	CraftingUI craft_ui{&player.inventory};
 
 	const int OFFSET = 2;
 
@@ -67,6 +63,8 @@ private:
 		for(Line* line : inv_ui.get_lines()) {
 			x_offset += 8;
 			int y_offset = 4;
+			draw_sprite(inv_ui.component.pos.x + y_offset, inv_ui.component.pos.y + x_offset, new engine::Sprite("demo/resources/" + line->words[0].text + ".png"));
+			y_offset += 8 + 4;
 			for(Word word : line->words) {
 				draw_string(inv_ui.component.pos.x + y_offset, inv_ui.component.pos.y + x_offset, word.text, line->color);
 				y_offset += word.len*8+8;
@@ -80,6 +78,8 @@ private:
 		for(Line* line : craft_ui.get_lines()) {
 			x_offset += 8;
 			int y_offset = 4;
+			draw_sprite(craft_ui.component.pos.x + y_offset, craft_ui.component.pos.y + x_offset, new engine::Sprite("demo/resources/" + line->words[0].text.substr(0, line->words[0].len-1) + ".png"));
+			y_offset += 8 + 4;
 			for(Word word : line->words) {
 				draw_string(craft_ui.component.pos.x + y_offset, craft_ui.component.pos.y + x_offset, word.text, line->color);
 				y_offset += word.len*8+8;
@@ -145,6 +145,9 @@ public:
 					x_timer = 0.0f;
 					player.set_dir(-1, 0);
 
+					if(player.pixel_pos.x == 0)
+						player.set_position(screen_width()-16, player.pixel_pos.y);
+
 					if (!level.get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y+OFFSET)/8))->is_solid && 
 						!level.get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y-OFFSET)/8)+2)->is_solid) {
 						player.move();
@@ -156,6 +159,9 @@ public:
 				if(x_timer >= 0.01f) {
 					x_timer = 0.0f;
 					player.set_dir(1, 0);
+
+					if(player.pixel_pos.x == screen_width()-17)
+						player.set_position(0, player.pixel_pos.y);
 
 					if (!level.get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y-OFFSET)/8)+2)->is_solid && 
 						!level.get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y+OFFSET)/8))->is_solid) {
@@ -170,6 +176,9 @@ public:
 					y_timer = 0.0f;
 					player.set_dir(0, -1);
 
+					if(player.pixel_pos.y == 0)
+						player.set_position(player.pixel_pos.x, screen_height()-16);
+
 					if (!level.get_tile(((player.pixel_pos.x+OFFSET)/8), (player.pixel_pos.y-1)/8)->is_solid && 
 						!level.get_tile(((player.pixel_pos.x-OFFSET)/8)+2, (player.pixel_pos.y-1)/8)->is_solid) {
 						player.move();
@@ -181,6 +190,9 @@ public:
 				if(y_timer >= 0.01f) {
 					y_timer = 0.0f;
 					player.set_dir(0, 1);
+
+					if(player.pixel_pos.y == screen_height()-16)
+						player.set_position(player.pixel_pos.x, 8);
 
 					if (!level.get_tile(((player.pixel_pos.x-OFFSET)/8)+2, ((player.pixel_pos.y+1)/8)+2)->is_solid && 
 						!level.get_tile(((player.pixel_pos.x+2)/8), ((player.pixel_pos.y+1)/8)+2)->is_solid) {
@@ -322,6 +334,13 @@ public:
 					craft_ui.previous_recipe();
 				if(get_key(engine::Key::ENTER).pressed)
 					craft_ui.craft_active();
+			}
+
+			if(player.inventory.get_active_item() != "nothing") {
+				fill_rect(screen_width()-128, screen_height()-16, 128, 16, engine::BLUE);
+				draw_rect(screen_width()-128, screen_height()-16, 128-1, 16-1, engine::DARK_GREY);
+				draw_string(screen_width()-128+12, screen_height()-16+4, player.inventory.get_active_item(), engine::BLACK);
+				draw_sprite(screen_width()-128+4, screen_height()-16+4, new engine::Sprite("demo/resources/" + player.inventory.get_active_item() + ".png"));
 			}
 		}
 

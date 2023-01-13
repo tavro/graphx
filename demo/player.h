@@ -22,6 +22,13 @@ public:
         dir.y = y;
     }
 
+    void set_position(int x, int y) {
+        pixel_pos.x = x;
+        pixel_pos.y = y;
+        tile_pos.x = pixel_pos.x/8;
+        tile_pos.y = pixel_pos.y/8;
+    }
+
     void move() {
         time_elapsed += 0.01f;
         if(time_elapsed >= 0.15f) {
@@ -35,6 +42,7 @@ public:
         tile_pos.x = pixel_pos.x/8;
         tile_pos.y = pixel_pos.y/8;
     }
+
 
     engine::Sprite* get_sprite() {
         std::string frame = std::to_string(animation_frame);

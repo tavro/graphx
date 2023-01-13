@@ -34,6 +34,12 @@ public:
                     world[x][y+1]   = new Tile("demo/resources/", engine::int_vector_2d(x*8, (y+1)*8), false, "grass");
                     world[x+1][y+1] = new Tile("demo/resources/", engine::int_vector_2d((x+1)*8, (y+1)*8), false, "grass");
                 }
+                else if(noise < 0.8f) {
+                    world[x][y]     = new BreakableTile("demo/resources/", engine::int_vector_2d(x*8, y*8), true, "tree", new Item(x*8, y*8, new engine::Sprite("demo/resources/wood.png"), "wood"));
+                    world[x+1][y]   = new BreakableTile("demo/resources/", engine::int_vector_2d((x+1)*8, y*8), true, "tree", new Item((x+1)*8, y*8, new engine::Sprite("demo/resources/wood.png"), "wood"));
+                    world[x][y+1]   = new BreakableTile("demo/resources/", engine::int_vector_2d(x*8, (y+1)*8), true, "tree", new Item(x*8, (y+1)*8, new engine::Sprite("demo/resources/wood.png"), "wood"));
+                    world[x+1][y+1] = new BreakableTile("demo/resources/", engine::int_vector_2d((x+1)*8, (y+1)*8), true, "tree", new Item((x+1)*8, (y+1)*8, new engine::Sprite("demo/resources/wood.png"), "wood"));
+                }
                 else {
                     world[x][y]     = new BreakableTile("demo/resources/", engine::int_vector_2d(x*8, y*8), true, "stone", new Item(x*8, y*8, new engine::Sprite("demo/resources/rock.png"), "rock"));
                     world[x+1][y]   = new BreakableTile("demo/resources/", engine::int_vector_2d((x+1)*8, y*8), true, "stone", new Item((x+1)*8, y*8, new engine::Sprite("demo/resources/rock.png"), "rock"));
