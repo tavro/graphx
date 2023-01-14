@@ -4,7 +4,7 @@
 #include "demo/state.h"
 #include "demo/tile.h"
 #include "demo/breakable.h"
-#include "demo/level.h"
+#include "demo/chunk.h"
 #include "demo/effect.h"
 #include "demo/player.h"
 #include "demo/recipe.h"
@@ -33,6 +33,7 @@ private:
 	int chunk_y = 0;
 
 	Chunk* chunks[10][10];
+	Chunk* cave_chunks[10][10];
 
 	Player player;
 
@@ -168,6 +169,9 @@ public:
 						!chunks[chunk_x][chunk_y]->get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y-OFFSET)/8)+2)->is_solid) {
 						player.move();
 					}
+					else if(!chunks[chunk_x][chunk_y]->get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y+OFFSET)/8))->is_enterable) {
+						//CHANGE TO CAVE
+					}
 				}
 			}
 			else if (get_key(engine::Key::D).held) {
@@ -298,7 +302,17 @@ public:
 			
 			if (get_key(engine::Key::SPACE).pressed) {
 				if(player.inventory.get_active_item() == "crafting-table" || player.inventory.get_active_item() == "oven" || player.inventory.get_active_item() == "chest") {
-					//TODO: Place active item & remove from inventory
+					if(player.inventory.get_item_amount(player.inventory.get_active_item()) > 0) {
+						for(int i = 0; i < 2; i++) {
+							for(int j = 0; j < 2; j++) {
+								int tilex = (drawx + player.dir.x*16)/8 + 1*i;
+								int tiley = (drawy + player.dir.y*16)/8 + 1*j;
+								Tile* tile = new Tile("demo/resources/", engine::int_vector_2d(tilex*8, tiley*8), true, player.inventory.get_active_item());
+								chunks[chunk_x][chunk_y]->set_tile(tilex, tiley, tile);
+							}
+						}
+						player.inventory.remove_item(player.inventory.get_active_item(), 1);
+					}
 				}
 				else {
 					hit_effect = new Effect(drawx + player.dir.x*16, drawy + player.dir.y*16, new engine::Sprite("demo/resources/hit.png"), 16);

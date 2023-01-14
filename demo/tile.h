@@ -11,6 +11,7 @@ public:
     std::string block_type;
 
     bool is_solid;
+    bool is_enterable;
 
     Tile(std::string path, engine::int_vector_2d p, bool solid, std::string type) {
         base_path = path;
@@ -22,7 +23,7 @@ public:
     virtual ~Tile() = default;
 
     engine::Sprite* get_sprite(Tile* ut, Tile* dt, Tile* lt, Tile* rt) {
-        if(block_type == "stone" || block_type == "grass") {
+        if(block_type == "stone" || block_type == "grass" || block_type == "hardened-stone") {
             bool u, d, l, r;
 
             u = (ut->block_type == block_type);
@@ -54,7 +55,7 @@ public:
                     return new engine::Sprite(base_path + block_type + "-bottom.png");
             }
         }
-        else if(block_type == "tree") {
+        else if(block_type == "tree" || block_type == "stair" || block_type == "oven" || block_type == "chest" || block_type == "crafting-table" || block_type == "cobble" || block_type == "ore") {
             if(pos.x%16 == 8 && pos.y%16 == 8)
                 return new engine::Sprite(base_path + block_type + "-bottom-right.png");
             else if(pos.x%16 == 8 && pos.y%16 == 0)
