@@ -28,11 +28,15 @@ private:
 	Menu menu{{"start", "how to play", "about", "quit"}, engine::DARK_GREY, engine::WHITE};
 
 	Chunk level;
+	ChunkType active_chunk_type;
 	
 	int chunk_x = 0;
 	int chunk_y = 0;
 
 	Chunk* chunks[10][10];
+
+
+	Chunk* overworld_chunks[10][10];
 	Chunk* cave_chunks[10][10];
 
 	Player player;
@@ -51,6 +55,14 @@ private:
 
 	float x_timer = 0.0f;
 	float y_timer = 0.0f;
+
+	void fill_array(Chunk* arr1[10][10], Chunk* arr2[10][10]) {
+		for(int y = 0; y < 10; y++) {
+			for(int x = 0; x < 10; x++) {
+				arr1[x][y] = arr2[x][y];
+			}
+		}
+	}
 
     void draw(ComponentUI component) {
         fill_rect(component.pos.x, component.pos.y, component.size.x, component.size.y, component.inside_color);
@@ -96,7 +108,8 @@ private:
 
 public:
 	bool on_create() override {
-		chunks[chunk_x][chunk_y] = new Chunk();
+		active_chunk_type = ChunkType::OVERWORLD;
+		chunks[chunk_x][chunk_y] = new Chunk(active_chunk_type);
 		return true;
 	}
 
@@ -155,13 +168,13 @@ public:
 					if(player.pixel_pos.x == 0 && chunk_x > 0) {
 						chunk_x--;
 						if(!chunks[chunk_x][chunk_y])
-							chunks[chunk_x][chunk_y] = new Chunk();
+							chunks[chunk_x][chunk_y] = new Chunk(active_chunk_type);
 						player.set_position(screen_width()-16, player.pixel_pos.y);
 					}
 					else if(player.pixel_pos.x == 0 && chunk_x == 0) { 
 						chunk_x=9;
 						if(!chunks[chunk_x][chunk_y])
-							chunks[chunk_x][chunk_y] = new Chunk();
+							chunks[chunk_x][chunk_y] = new Chunk(active_chunk_type);
 						player.set_position(screen_width()-16, player.pixel_pos.y);
 					}
 					
@@ -169,8 +182,22 @@ public:
 						!chunks[chunk_x][chunk_y]->get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y-OFFSET)/8)+2)->is_solid) {
 						player.move();
 					}
-					else if(!chunks[chunk_x][chunk_y]->get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y+OFFSET)/8))->is_enterable) {
-						//CHANGE TO CAVE
+					if(chunks[chunk_x][chunk_y]->get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y+OFFSET)/8))->is_enterable && 
+							chunks[chunk_x][chunk_y]->get_tile((player.pixel_pos.x-1)/8, ((player.pixel_pos.y-OFFSET)/8)+2)->is_enterable) {
+						if(active_chunk_type == ChunkType::OVERWORLD) {
+							active_chunk_type = ChunkType::CAVE;
+							fill_array(overworld_chunks, chunks);
+							if(!cave_chunks[chunk_x][chunk_y])
+								cave_chunks[chunk_x][chunk_y] = new Chunk(ChunkType::CAVE);
+							fill_array(chunks, cave_chunks);
+						}
+						else {
+							active_chunk_type = ChunkType::OVERWORLD;
+							fill_array(cave_chunks, chunks);
+							if(!cave_chunks[chunk_x][chunk_y])
+								cave_chunks[chunk_x][chunk_y] = new Chunk(ChunkType::OVERWORLD);
+							fill_array(chunks, overworld_chunks);
+						}
 					}
 				}
 			}
@@ -183,19 +210,36 @@ public:
 					if(player.pixel_pos.x == screen_width()-17 && chunk_x < 9) {
 						chunk_x++;
 						if(!chunks[chunk_x][chunk_y])
-							chunks[chunk_x][chunk_y] = new Chunk();
+							chunks[chunk_x][chunk_y] = new Chunk(active_chunk_type);
 						player.set_position(0, player.pixel_pos.y);
 					}
 					else if(player.pixel_pos.x == screen_width()-17 && chunk_x == 9) {
 						chunk_x=0;
 						if(!chunks[chunk_x][chunk_y])
-							chunks[chunk_x][chunk_y] = new Chunk();
+							chunks[chunk_x][chunk_y] = new Chunk(active_chunk_type);
 						player.set_position(0, player.pixel_pos.y);
 					}
 
 					if (!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y-OFFSET)/8)+2)->is_solid && 
 						!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y+OFFSET)/8))->is_solid) {
 						player.move();
+					}
+					if(chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y-OFFSET)/8)+2)->is_enterable && 
+							chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+1)/8)+2, ((player.pixel_pos.y+OFFSET)/8))->is_enterable) {
+						if(active_chunk_type == ChunkType::OVERWORLD) {
+							active_chunk_type = ChunkType::CAVE;
+							fill_array(overworld_chunks, chunks);
+							if(!cave_chunks[chunk_x][chunk_y])
+								cave_chunks[chunk_x][chunk_y] = new Chunk(ChunkType::CAVE);
+							fill_array(chunks, cave_chunks);
+						}
+						else {
+							active_chunk_type = ChunkType::OVERWORLD;
+							fill_array(cave_chunks, chunks);
+							if(!cave_chunks[chunk_x][chunk_y])
+								cave_chunks[chunk_x][chunk_y] = new Chunk(ChunkType::OVERWORLD);
+							fill_array(chunks, overworld_chunks);
+						}
 					}
 				}
 			}
@@ -209,19 +253,36 @@ public:
 					if(player.pixel_pos.y == 0 && chunk_y > 0) {
 						chunk_y--;
 						if(!chunks[chunk_x][chunk_y])
-							chunks[chunk_x][chunk_y] = new Chunk();
+							chunks[chunk_x][chunk_y] = new Chunk(active_chunk_type);
 						player.set_position(player.pixel_pos.x, screen_height()-16);
 					}
 					else if(player.pixel_pos.y == 0 && chunk_y == 0) {
 						chunk_y=9;
 						if(!chunks[chunk_x][chunk_y])
-							chunks[chunk_x][chunk_y] = new Chunk();
+							chunks[chunk_x][chunk_y] = new Chunk(active_chunk_type);
 						player.set_position(player.pixel_pos.x, screen_height()-16);
 					}
 
 					if (!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+OFFSET)/8), (player.pixel_pos.y-1)/8)->is_solid && 
 						!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x-OFFSET)/8)+2, (player.pixel_pos.y-1)/8)->is_solid) {
 						player.move();
+					}
+					if(chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+OFFSET)/8), (player.pixel_pos.y-1)/8)->is_enterable && 
+							chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x-OFFSET)/8)+2, (player.pixel_pos.y-1)/8)->is_enterable) {
+						if(active_chunk_type == ChunkType::OVERWORLD) {
+							active_chunk_type = ChunkType::CAVE;
+							fill_array(overworld_chunks, chunks);
+							if(!cave_chunks[chunk_x][chunk_y])
+								cave_chunks[chunk_x][chunk_y] = new Chunk(ChunkType::CAVE);
+							fill_array(chunks, cave_chunks);
+						}
+						else {
+							active_chunk_type = ChunkType::OVERWORLD;
+							fill_array(cave_chunks, chunks);
+							if(!cave_chunks[chunk_x][chunk_y])
+								cave_chunks[chunk_x][chunk_y] = new Chunk(ChunkType::OVERWORLD);
+							fill_array(chunks, overworld_chunks);
+						}
 					}
 				}
 			}
@@ -234,19 +295,36 @@ public:
 					if(player.pixel_pos.y == screen_height()-16 && chunk_y < 9) {
 						chunk_y++;
 						if(!chunks[chunk_x][chunk_y])
-							chunks[chunk_x][chunk_y] = new Chunk();
+							chunks[chunk_x][chunk_y] = new Chunk(active_chunk_type);
 						player.set_position(player.pixel_pos.x, 8);
 					}
 					else if(player.pixel_pos.y == screen_height()-16 && chunk_y == 9) {
 						chunk_y=0;
 						if(!chunks[chunk_x][chunk_y])
-							chunks[chunk_x][chunk_y] = new Chunk();
+							chunks[chunk_x][chunk_y] = new Chunk(active_chunk_type);
 						player.set_position(player.pixel_pos.x, 8);
 					}
 
 					if (!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x-OFFSET)/8)+2, ((player.pixel_pos.y+1)/8)+2)->is_solid && 
 						!chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+2)/8), ((player.pixel_pos.y+1)/8)+2)->is_solid) {
 						player.move();
+					}
+					if(chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x-OFFSET)/8)+2, ((player.pixel_pos.y+1)/8)+2)->is_enterable && 
+							chunks[chunk_x][chunk_y]->get_tile(((player.pixel_pos.x+2)/8), ((player.pixel_pos.y+1)/8)+2)->is_enterable) {
+						if(active_chunk_type == ChunkType::OVERWORLD) {
+							active_chunk_type = ChunkType::CAVE;
+							fill_array(overworld_chunks, chunks);
+							if(!cave_chunks[chunk_x][chunk_y])
+								cave_chunks[chunk_x][chunk_y] = new Chunk(ChunkType::CAVE);
+							fill_array(chunks, cave_chunks);
+						}
+						else {
+							active_chunk_type = ChunkType::OVERWORLD;
+							fill_array(cave_chunks, chunks);
+							if(!cave_chunks[chunk_x][chunk_y])
+								cave_chunks[chunk_x][chunk_y] = new Chunk(ChunkType::OVERWORLD);
+							fill_array(chunks, overworld_chunks);
+						}
 					}
 				}
 			}
@@ -326,7 +404,11 @@ public:
 							if(b) {
 								if (b->hit()) {
 									items.push_back(b->drop_item);
-									Tile* tile = new Tile("demo/resources/", engine::int_vector_2d(tilex*8, tiley*8), false, "dirt");
+									Tile* tile = nullptr;
+									if(active_chunk_type == ChunkType::OVERWORLD)
+										tile = new Tile("demo/resources/", engine::int_vector_2d(tilex*8, tiley*8), false, "dirt");
+									else
+										tile = new Tile("demo/resources/", engine::int_vector_2d(tilex*8, tiley*8), false, "cobble");
 									chunks[chunk_x][chunk_y]->set_tile(tilex, tiley, tile);
 								}
 							}

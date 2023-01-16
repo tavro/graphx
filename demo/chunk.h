@@ -2,10 +2,14 @@
 #include "item.h"
 #include "breakable.h"
 #include "../PerlinNoise.hpp"
+#include "chunk_type.h"
 
 class Chunk {
 public:
     const siv::PerlinNoise perlin{ std::random_device{} };
+
+    ChunkType type;
+    
     int width = 32;
     int height = 30;
 
@@ -30,9 +34,16 @@ public:
             y++;
 
         tiles[x][y]     = new Tile("demo/resources/", engine::int_vector_2d(x*8, y*8), false, stair_type);
+        tiles[x][y]->is_enterable = true;
+
         tiles[x+1][y]   = new Tile("demo/resources/", engine::int_vector_2d((x+1)*8, y*8), false, stair_type);
+        tiles[x+1][y]->is_enterable = true;
+
         tiles[x][y+1]   = new Tile("demo/resources/", engine::int_vector_2d(x*8, (y+1)*8), false, stair_type);
+        tiles[x][y+1]->is_enterable = true;
+
         tiles[x+1][y+1] = new Tile("demo/resources/", engine::int_vector_2d((x+1)*8, (y+1)*8), false, stair_type);
+        tiles[x+1][y+1]->is_enterable = true;
     }
 
     void generate() {
@@ -73,6 +84,31 @@ public:
 			}
 		}
         place_staircase();
+    }
+
+    Chunk(ChunkType chunk_type) {
+        type = chunk_type;
+
+        if(type == ChunkType::OVERWORLD) {
+            base_type = "dirt"; //"cobble";
+            layer_type = "grass"; //"hardened-stone";
+
+            stair_type = "stair"; //"stair-up";
+
+            mineral_type = "tree"; //"ore";
+            mineral_droppable = "wood";
+        }
+        else {
+            base_type = "cobble";
+            layer_type = "hardened-stone";
+
+            stair_type = "stair-up";
+
+            mineral_type = "ore";
+            mineral_droppable = "wood"; //TODO
+        }
+
+        generate();
     }
 
     Chunk() {
